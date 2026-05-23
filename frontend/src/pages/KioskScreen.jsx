@@ -873,7 +873,7 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
   );
 }
 
-/* ─── STEP 3: Tool Selection ──────────────────────────────────────────────── */
+
 function StepTools({ cart, setCart, onNext, onBack }) {
   const [activeCat, setActiveCat] = useState('electrical');
   const cat = CATEGORIES.find(c => c.id === activeCat);
