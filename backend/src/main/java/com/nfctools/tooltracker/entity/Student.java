@@ -24,7 +24,7 @@ public class Student extends BaseEntity {
     private Long id;
 
     @Column(name = "qr_code", unique = true, length = 100)
-    private String qrCode;          // scanned from student ID card; nullable if walk-in
+    private String qrCode;
 
     @Column(nullable = false, length = 100)
     private String name;

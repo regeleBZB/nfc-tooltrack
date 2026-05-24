@@ -6,11 +6,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Generates receipt numbers in format: RCP-YYYYMMDD-XXXX
- * The sequence resets per JVM restart — for a prototype this is fine.
- * For production, replace with a DB sequence.
- */
+
 @Component
 public class ReceiptNumberGenerator {
 

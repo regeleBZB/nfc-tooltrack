@@ -34,12 +34,10 @@ public class Transaction extends BaseEntity {
     @Column(nullable = false, length = 20)
     private TransactionType type;
 
-    // Student link — nullable for anonymous purchases
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id")
     private Student student;
 
-    // Fallback name if student is not in the system
     @Column(name = "borrower_name", length = 100)
     private String borrowerName;
 
@@ -47,7 +45,7 @@ public class Transaction extends BaseEntity {
     private LocalDateTime transactedAt = LocalDateTime.now();
 
     @Column(name = "returned_at")
-    private LocalDateTime returnedAt;   // filled on RETURN
+    private LocalDateTime returnedAt;
 
     @Column(name = "receipt_number", unique = true, length = 30)
     private String receiptNumber;       // e.g. "RCP-20240601-0001"
@@ -59,7 +57,6 @@ public class Transaction extends BaseEntity {
     @Builder.Default
     private List<TransactionItem> items = new ArrayList<>();
 
-    // Helper to add items while keeping both sides of relation in sync
     public void addItem(TransactionItem item) {
         items.add(item);
         item.setTransaction(this);

@@ -18,9 +18,9 @@ public class UsbPrinterStrategy implements PrinterStrategy {
 
     @Override
     public OutputStream openStream() throws Exception {
-        PrintService ps = findPrintService();
-        // escpos-coffee PrintServiceOutputStream
-        return new com.github.anastaciocintra.output.PrintServiceOutputStream(ps);
+        // TODO: uncomment when escpos-coffee is resolved
+        // return new com.github.anastaciocintra.output.PrintServiceOutputStream(findPrintService());
+        throw new UnsupportedOperationException("USB printing not yet configured");
     }
 
     @Override

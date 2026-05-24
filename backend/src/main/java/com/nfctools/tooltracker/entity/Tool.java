@@ -25,13 +25,13 @@ public class Tool extends BaseEntity {
     private Long id;
 
     @Column(name = "tool_code", nullable = false, unique = true, length = 20)
-    private String toolCode;        // e.g. "TW-001" — human-readable ID
+    private String toolCode;
 
     @Column(nullable = false, length = 100)
-    private String name;            // e.g. "Torque Wrench"
+    private String name;
 
     @Column(length = 50)
-    private String category;        // e.g. "Wrench", "Measuring", "Power Tool"
+    private String category;
 
     @Column(length = 255)
     private String description;
@@ -41,9 +41,8 @@ public class Tool extends BaseEntity {
     private ToolStatus status = ToolStatus.AVAILABLE;
 
     @Column(name = "purchase_price", columnDefinition = "DECIMAL(10,2)")
-    private Double purchasePrice;   // for purchase transaction receipts
+    private Double purchasePrice;
 
-    // Navigational — lazily loaded, not always needed
     @OneToOne(mappedBy = "tool", fetch = FetchType.LAZY)
     private Tag tag;
 }

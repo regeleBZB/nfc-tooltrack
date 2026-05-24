@@ -24,17 +24,17 @@ public class Tag extends BaseEntity {
 
     @Id
     @Column(name = "uid", length = 50)
-    private String uid;             // e.g. "04A3F2C1" — normalized UPPERCASE
+    private String uid;
 
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "tool_id", nullable = false, unique = true)
     private Tool tool;
 
     @Column(name = "is_active", nullable = false)
-    private boolean active = true;  // set false when tag is replaced/damaged
+    private boolean active = true;
 
     @Column(name = "encoded_by", length = 100)
-    private String encodedBy;       // admin username who registered this tag
+    private String encodedBy;
 
     @Column(name = "notes", length = 255)
     private String notes;

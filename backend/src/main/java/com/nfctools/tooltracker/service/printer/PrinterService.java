@@ -22,10 +22,6 @@ public class PrinterService {
     private final UsbPrinterStrategy usbStrategy;
     private final BluetoothPrinterStrategy bluetoothStrategy;
 
-    /**
-     * Print a receipt for a completed transaction.
-     * Strategy is selected based on current config.mode.
-     */
     public void printReceipt(Transaction tx) {
         PrinterStrategy strategy = resolveStrategy();
         log.info("Printing receipt {} via {}", tx.getReceiptNumber(), strategy.getDescription());
