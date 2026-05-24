@@ -24,7 +24,6 @@ public class ToolController {
 
     private final ToolService toolService;
 
-    /** Called by NFCScanner.jsx on every tag scan — public endpoint */
     @GetMapping("/uid/{uid}")
     public ResponseEntity<ApiResponse<ToolResponse>> getByUid(@PathVariable String uid) {
         return ResponseEntity.ok(ApiResponse.ok(toolService.getToolByUid(uid)));

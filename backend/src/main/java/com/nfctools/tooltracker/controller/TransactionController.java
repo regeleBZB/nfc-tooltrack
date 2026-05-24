@@ -24,8 +24,6 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
-
-    /** Public — called by kiosk on cart confirm */
     @PostMapping
     public ResponseEntity<ApiResponse<TransactionResponse>> create(
             @Valid @RequestBody CreateTransactionRequest request) {
