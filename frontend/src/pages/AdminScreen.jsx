@@ -1,65 +1,90 @@
 import React, { useState } from 'react';
 
-// ── Reusable sub-components ──────────────────────────────────────────────────
+// ✅ FIXED: All dark theme CSS variables replaced with KioskScreen light palette:
+//   #F5F3EE  bg, #FFFFFF surface, #28251d ink, #7A7974 muted,
+//   #01696f  teal accent, #437a22 green, #C0392B red, #E5E3DF border
 
-function StatCard({ label, value, sub, valueColor }) {
+// ── Light-theme design tokens (mirrors KioskScreen palette) ──────────────────
+const T = {
+  bg:         '#F5F3EE',
+  surface:    '#FFFFFF',
+  surface2:   '#F0EDE6',
+  border:     '#E5E3DF',
+  border2:    'rgba(0,0,0,0.15)',
+  ink:        '#28251d',
+  ink2:       '#7A7974',
+  ink3:       '#BAB9B4',
+  teal:       '#01696f',
+  tealBg:     '#CEDCD8',
+  green:      '#437a22',
+  greenBg:    '#D4DFCC',
+  amber:      '#B45309',
+  amberBg:    '#FEF3DC',
+  red:        '#C0392B',
+  redBg:      '#FEECEB',
+  blue:       '#1D4ED8',
+  blueBg:     '#EEF3FD',
+  tagBg:      '#E8E4DC',
+};
+
+// ── Reusable components ──────────────────────────────────────────────────────
+
+function StatCard({ label, value, sub, accent }) {
   return (
     <div style={{
-      background: 'linear-gradient(135deg, rgba(11,26,53,0.7), rgba(46,44,0,0.5))',
-      border: '1px solid var(--gold-border)',
-      borderRadius: '12px',
-      padding: '20px 24px',
-      position: 'relative',
-      overflow: 'hidden',
+      background: T.surface, border: `1px solid ${T.border}`,
+      borderRadius: 12, padding: '16px 18px',
+      position: 'relative', overflow: 'hidden',
     }}>
+      {/* Accent bar top */}
       <div style={{
-        position: 'absolute', top: 0, right: 0,
-        width: '60px', height: '60px', borderRadius: '50%',
-        background: 'var(--gold-glow)', transform: 'translate(20px,-20px)',
+        position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+        background: accent || T.ink, borderRadius: '12px 12px 0 0',
       }} />
       <div style={{
-        fontFamily: "'Space Mono', monospace", fontSize: '9px',
-        letterSpacing: '2px', color: 'var(--text-muted)', textTransform: 'uppercase',
+        fontSize: 10, fontWeight: 600, letterSpacing: '0.8px',
+        textTransform: 'uppercase', color: T.ink2, marginBottom: 8, marginTop: 3,
       }}>
         {label}
       </div>
       <div style={{
-        fontFamily: "'Rajdhani', sans-serif", fontSize: '38px',
-        fontWeight: 700, color: valueColor || 'var(--old-gold)', lineHeight: 1.1, marginTop: '4px',
+        fontFamily: "'Inter', sans-serif", fontSize: 32,
+        fontWeight: 700, color: accent || T.ink, lineHeight: 1,
       }}>
         {value}
       </div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>{sub}</div>
+      <div style={{ fontSize: 11, color: T.ink2, marginTop: 5 }}>{sub}</div>
     </div>
   );
 }
 
-function SectionTitle({ children }) {
+function SectionLabel({ children }) {
   return (
     <div style={{
-      fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: '13px',
-      letterSpacing: '3px', textTransform: 'uppercase', color: 'var(--old-gold)',
-      marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '12px',
+      fontSize: 10, fontWeight: 600, letterSpacing: '1.2px',
+      textTransform: 'uppercase', color: T.ink2, marginBottom: 10,
     }}>
       {children}
-      <div style={{ flex: 1, height: '1px', background: 'var(--gold-border)' }} />
     </div>
   );
 }
 
 function StatusBadge({ status }) {
+  // ✅ FIXED: light-mode badge colors (no dark rgba)
   const map = {
-    Available: { bg: 'rgba(34,197,94,0.15)',  color: '#4ade80', border: 'rgba(34,197,94,0.3)' },
-    Borrowed:  { bg: 'rgba(190,183,0,0.15)',  color: 'var(--old-gold)', border: 'var(--gold-border)' },
-    Overdue:   { bg: 'rgba(239,68,68,0.15)',  color: '#f87171', border: 'rgba(239,68,68,0.3)' },
+    AVAILABLE: { bg: T.greenBg,  color: T.green },
+    Available: { bg: T.greenBg,  color: T.green },
+    BORROWED:  { bg: T.amberBg,  color: T.amber },
+    Borrowed:  { bg: T.amberBg,  color: T.amber },
+    OVERDUE:   { bg: T.redBg,    color: T.red   },
+    Overdue:   { bg: T.redBg,    color: T.red   },
+    MAINTENANCE:{ bg: T.blueBg,  color: T.blue  },
   };
-  const c = map[status] || map.Available;
+  const c = map[status] || { bg: T.tagBg, color: T.ink2 };
   return (
     <span style={{
-      display: 'inline-block', padding: '3px 10px', borderRadius: '20px',
-      fontFamily: "'Space Mono', monospace", fontSize: '9px',
-      letterSpacing: '1px', fontWeight: 700,
-      background: c.bg, color: c.color, border: `1px solid ${c.border}`,
+      display: 'inline-block', padding: '2px 8px', borderRadius: 20,
+      fontSize: 10, fontWeight: 600, background: c.bg, color: c.color,
     }}>
       {status}
     </span>
@@ -68,31 +93,29 @@ function StatusBadge({ status }) {
 
 function RoleBadge({ role }) {
   const map = {
-    Admin:      { bg: 'rgba(26,58,107,0.4)',   color: '#93c5fd', border: 'rgba(59,130,246,0.3)' },
-    Instructor: { bg: 'rgba(152,146,0,0.2)',   color: 'var(--olive)', border: 'rgba(152,146,0,0.3)' },
-    Student:    { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: 'rgba(255,255,255,0.1)' },
+    Admin:      { bg: T.blueBg,  color: T.blue  },
+    Instructor: { bg: T.amberBg, color: T.amber  },
+    Student:    { bg: T.tagBg,   color: T.ink2   },
   };
-  const c = map[role] || map.Student;
+  const c = map[role] || { bg: T.tagBg, color: T.ink2 };
   return (
     <span style={{
-      display: 'inline-block', padding: '3px 10px', borderRadius: '20px',
-      fontFamily: "'Space Mono', monospace", fontSize: '9px', letterSpacing: '1px',
-      background: c.bg, color: c.color, border: `1px solid ${c.border}`,
+      display: 'inline-block', padding: '2px 8px', borderRadius: 20,
+      fontSize: 10, fontWeight: 600, background: c.bg, color: c.color,
     }}>
       {role}
     </span>
   );
 }
 
-function TagChip({ id }) {
+function TagChip({ uid }) {
   return (
     <span style={{
-      display: 'inline-block', padding: '2px 8px',
-      background: 'rgba(26,58,107,0.4)', border: '1px solid rgba(59,130,246,0.2)',
-      borderRadius: '3px', fontFamily: "'Space Mono', monospace",
-      fontSize: '9px', color: '#93c5fd', marginLeft: '4px',
+      display: 'inline-block', padding: '2px 7px',
+      background: T.tagBg, borderRadius: 4,
+      fontFamily: 'monospace', fontSize: 10, color: T.ink2,
     }}>
-      {id}
+      {uid}
     </span>
   );
 }
@@ -100,30 +123,22 @@ function TagChip({ id }) {
 function Panel({ children }) {
   return (
     <div style={{
-      background: 'linear-gradient(160deg, rgba(11,26,53,0.5), rgba(4,4,0,0.8))',
-      border: '1px solid var(--gold-border)',
-      borderRadius: '12px',
-      overflow: 'hidden',
+      background: T.surface, border: `1px solid ${T.border}`,
+      borderRadius: 12, overflow: 'hidden', marginBottom: 16,
     }}>
       {children}
     </div>
   );
 }
 
-function PanelHeader({ title, children }) {
+function PanelHead({ title, children }) {
   return (
     <div style={{
-      padding: '16px 20px',
-      borderBottom: '1px solid var(--gold-border)',
+      padding: '12px 16px', borderBottom: `1px solid ${T.border}`,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      background: 'rgba(190,183,0,0.04)',
+      background: T.surface2,
     }}>
-      <span style={{
-        fontFamily: "'Rajdhani', sans-serif", fontSize: '14px',
-        fontWeight: 600, letterSpacing: '2px', color: 'var(--old-gold)',
-      }}>
-        {title}
-      </span>
+      <span style={{ fontWeight: 700, fontSize: 13, color: T.ink }}>{title}</span>
       {children}
     </div>
   );
@@ -136,134 +151,165 @@ function SearchInput({ placeholder, value, onChange }) {
       value={value}
       onChange={onChange}
       style={{
-        padding: '6px 12px',
-        background: 'rgba(0,0,0,0.4)',
-        border: '1px solid rgba(190,183,0,0.15)',
-        borderRadius: '4px',
-        color: 'var(--text-bright)',
-        fontSize: '12px',
-        fontFamily: "'DM Sans', sans-serif",
-        outline: 'none',
-        width: '140px',
+        padding: '5px 10px', background: T.surface,
+        border: `1px solid ${T.border}`, borderRadius: 6,
+        color: T.ink, fontSize: 12,
+        fontFamily: "'Inter', sans-serif", outline: 'none', width: 130,
       }}
     />
   );
 }
 
-// ── Initial mock data ────────────────────────────────────────────────────────
+// ── Table styles ──────────────────────────────────────────────────────────────
+const th = {
+  padding: '9px 14px', textAlign: 'left', fontSize: 10, fontWeight: 600,
+  letterSpacing: '1px', textTransform: 'uppercase', color: T.ink2,
+  borderBottom: `1px solid ${T.border}`, background: T.surface2,
+};
+const td = {
+  padding: '10px 14px', borderBottom: `1px solid ${T.border}`,
+  fontSize: 12, color: T.ink, verticalAlign: 'middle',
+};
 
-const INITIAL_TOOLS = [
-  { id: 1, name: 'Digital Multimeter',  tag: 'NFC-A3F7', status: 'Borrowed' },
-  { id: 2, name: 'Oscilloscope Probe',  tag: 'NFC-B2C1', status: 'Available' },
-  { id: 3, name: 'Function Generator',  tag: 'NFC-D4E9', status: 'Overdue' },
-  { id: 4, name: 'Breadboard Kit',      tag: 'NFC-F1A2', status: 'Available' },
-  { id: 5, name: 'DC Power Supply',     tag: 'NFC-G9B3', status: 'Borrowed' },
+// ── Mock data (replace with API calls) ───────────────────────────────────────
+// ✅ BACKEND NOTE: status values match ToolStatus enum (AVAILABLE/BORROWED/MAINTENANCE/RETIRED)
+const INIT_TOOLS = [
+  { id: 1, toolCode: 'MM-001', name: 'Digital Multimeter',  tagUid: 'NFC-A3F7', status: 'BORROWED'   },
+  { id: 2, toolCode: 'OS-002', name: 'Oscilloscope Probe',  tagUid: 'NFC-B2C1', status: 'AVAILABLE'  },
+  { id: 3, toolCode: 'FG-003', name: 'Function Generator',  tagUid: 'NFC-D4E9', status: 'OVERDUE'    },
+  { id: 4, toolCode: 'BB-004', name: 'Breadboard Kit',      tagUid: 'NFC-F1A2', status: 'AVAILABLE'  },
+  { id: 5, toolCode: 'PS-005', name: 'DC Power Supply',     tagUid: 'NFC-G9B3', status: 'BORROWED'   },
 ];
 
-const INITIAL_USERS = [
-  { id: 1, name: 'Reyes, Maria',    studentId: '2024-00421', role: 'Student' },
-  { id: 2, name: 'Santos, Luis',    studentId: '2023-01182', role: 'Student' },
-  { id: 3, name: 'Prof. Dela Cruz', studentId: 'INS-0042',  role: 'Instructor' },
-  { id: 4, name: 'Admin User',      studentId: 'ADM-001',   role: 'Admin' },
+// ✅ BACKEND NOTE: students map to Student entity (name, qrCode, section)
+const INIT_STUDENTS = [
+  { id: 1, name: 'Reyes, Maria',    qrCode: '2024-00421', section: 'EE301-3A', role: 'Student'    },
+  { id: 2, name: 'Santos, Luis',    qrCode: '2023-01182', section: 'EE205-2B', role: 'Student'    },
+  { id: 3, name: 'Prof. Dela Cruz', qrCode: 'INS-0042',   section: 'N/A',      role: 'Instructor' },
+  { id: 4, name: 'Admin User',      qrCode: 'ADM-001',    section: 'N/A',      role: 'Admin'      },
 ];
 
+// ✅ BACKEND NOTE: feed maps to Transaction entity (type, student, tool, transactedAt)
 const FEED = [
-  { type: 'borrow', text: 'Reyes, Maria borrowed Digital Multimeter', tag: 'NFC-A3F7', time: 'Today · 09:42 AM · EE301-3A' },
-  { type: 'return', text: 'Santos, Luis returned Breadboard Kit',      tag: 'NFC-F1A2', time: 'Today · 09:31 AM · EE205-2B' },
-  { type: 'overdue',text: 'Cruz, Ana — Function Generator OVERDUE 2d', tag: 'NFC-D4E9', time: 'Due · May 15 · EE301-3A' },
-  { type: 'borrow', text: 'Gomez, R. borrowed DC Power Supply',        tag: 'NFC-G9B3', time: 'Today · 08:55 AM · EE402-4A' },
-  { type: 'return', text: 'Torres, J. returned Oscilloscope Probe',    tag: 'NFC-B2C1', time: 'Today · 08:20 AM · EE205-2B' },
+  { type: 'borrow',  text: 'Reyes, Maria borrowed Digital Multimeter',   tagUid: 'NFC-A3F7', time: 'Today · 09:42 AM · EE301-3A' },
+  { type: 'return',  text: 'Santos, Luis returned Breadboard Kit',        tagUid: 'NFC-F1A2', time: 'Today · 09:31 AM · EE205-2B' },
+  { type: 'overdue', text: 'Cruz, Ana — Function Generator overdue 2d',   tagUid: 'NFC-D4E9', time: 'Due · May 15 · EE301-3A'    },
+  { type: 'borrow',  text: 'Gomez, R. borrowed DC Power Supply',          tagUid: 'NFC-G9B3', time: 'Today · 08:55 AM · EE402-4A' },
+  { type: 'return',  text: 'Torres, J. returned Oscilloscope Probe',      tagUid: 'NFC-B2C1', time: 'Today · 08:20 AM · EE205-2B' },
 ];
 
-// ── Main component ────────────────────────────────────────────────────────────
+const feedDotColor = { borrow: T.amber, return: T.green, overdue: T.red };
 
+// ── Main AdminScreen ──────────────────────────────────────────────────────────
 export default function AdminScreen() {
-  const [tools, setTools]           = useState(INITIAL_TOOLS);
-  const [users, setUsers]           = useState(INITIAL_USERS);
+  const [tools,      setTools]      = useState(INIT_TOOLS);
+  const [students,   setStudents]   = useState(INIT_STUDENTS);
   const [toolSearch, setToolSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
-  const [newTool, setNewTool]       = useState({ name: '', tag: '' });
+  const [newTool,    setNewTool]    = useState({ toolCode: '', name: '', tagUid: '' });
 
-  const addTool = () => {
-    if (!newTool.name || !newTool.tag) return;
-    setTools(prev => [...prev, { id: Date.now(), ...newTool, status: 'Available' }]);
-    setNewTool({ name: '', tag: '' });
-    // TODO: POST /api/tools
+  // ── Tool CRUD (wire to backend later) ───────────────────────────────────────
+  const addTool = async () => {
+    if (!newTool.toolCode || !newTool.name) return;
+    // TODO: POST /api/tools → { toolCode, name }
+    // TODO: POST /api/tags/register → { uid: newTool.tagUid, toolId: response.id }
+    setTools(prev => [...prev, {
+      id: Date.now(), ...newTool, status: 'AVAILABLE',
+    }]);
+    setNewTool({ toolCode: '', name: '', tagUid: '' });
   };
 
-  const removeTool = (id) => {
-    setTools(prev => prev.filter(t => t.id !== id));
+  const removeTool = async (id) => {
     // TODO: DELETE /api/tools/:id
+    setTools(prev => prev.filter(t => t.id !== id));
   };
 
-  const removeUser = (id) => {
-    setUsers(prev => prev.filter(u => u.id !== id));
-    // TODO: DELETE /api/users/:id
+  const removeStudent = async (id) => {
+    // TODO: DELETE /api/students/:id  (actually deactivates, not hard delete)
+    setStudents(prev => prev.filter(s => s.id !== id));
   };
 
+  // ── Filtered lists ───────────────────────────────────────────────────────────
   const filteredTools = tools.filter(t =>
     t.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
-    t.tag.toLowerCase().includes(toolSearch.toLowerCase())
+    t.toolCode.toLowerCase().includes(toolSearch.toLowerCase()) ||
+    (t.tagUid || '').toLowerCase().includes(toolSearch.toLowerCase())
   );
 
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-    u.studentId.toLowerCase().includes(userSearch.toLowerCase())
+  const filteredStudents = students.filter(s =>
+    s.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+    s.qrCode.toLowerCase().includes(userSearch.toLowerCase())
   );
 
-  const tdStyle = {
-    padding: '11px 16px', fontSize: '13px',
-    color: 'var(--text-bright)', borderBottom: '1px solid rgba(255,255,255,0.04)',
-  };
-  const thStyle = {
-    padding: '10px 16px', textAlign: 'left',
-    fontFamily: "'Space Mono', monospace", fontSize: '9px',
-    letterSpacing: '2px', color: 'var(--text-muted)', textTransform: 'uppercase',
-    borderBottom: '1px solid rgba(190,183,0,0.1)',
-    background: 'rgba(11,26,53,0.3)',
-  };
+  // ── Stats (will come from GET /api/admin/dashboard) ──────────────────────────
+  const available = tools.filter(t => t.status === 'AVAILABLE').length;
+  const borrowed  = tools.filter(t => t.status === 'BORROWED').length;
+  const overdue   = tools.filter(t => t.status === 'OVERDUE').length;
 
   return (
     <div style={{
       minHeight: 'calc(100vh - 56px)',
-      background: 'linear-gradient(160deg, rgba(11,26,53,0.5) 0%, var(--black) 40%)',
-      padding: '32px',
+      background: T.bg,
+      padding: '24px 28px',
+      fontFamily: "'Inter', sans-serif",
     }}>
 
-      {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '28px' }}>
-        <StatCard label="Total Tools"       value={tools.length}                            sub={`${tools.filter(t=>t.status==='Available').length} available`} />
-        <StatCard label="Currently Borrowed" value={tools.filter(t=>t.status==='Borrowed').length}  sub={`${tools.filter(t=>t.status==='Overdue').length} overdue`} valueColor="var(--warning)" />
-        <StatCard label="Active Users"       value={users.length}                            sub={`${users.filter(u=>u.role==='Instructor').length} instructors`} valueColor="var(--info)" />
+      {/* ── Stat cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
+        <StatCard label="Total Tools"      value={tools.length}    sub={`${available} available`}    accent={T.ink}  />
+        <StatCard label="Borrowed"         value={borrowed}        sub={`${overdue} overdue`}         accent={T.amber}/>
+        <StatCard label="Active Students"  value={students.length} sub={`${students.filter(s=>s.role==='Instructor').length} instructors`} accent={T.blue} />
+        <StatCard label="Today's Scans"    value="12"              sub="since 8:00 AM"                accent={T.green}/>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16 }}>
 
-        {/* LEFT COLUMN */}
+        {/* ── LEFT COLUMN ── */}
         <div>
 
           {/* Tool Inventory */}
-          <SectionTitle>Tool Inventory</SectionTitle>
+          <SectionLabel>Tool Inventory</SectionLabel>
           <Panel>
-            <PanelHeader title="All Tools">
-              <SearchInput placeholder="Search tools…" value={toolSearch} onChange={e => setToolSearch(e.target.value)} />
-            </PanelHeader>
+            <PanelHead title="All Tools">
+              <SearchInput
+                placeholder="Search tools…"
+                value={toolSearch}
+                onChange={e => setToolSearch(e.target.value)}
+              />
+            </PanelHead>
 
-            {/* Add tool form */}
-            <div style={{ padding: '16px 20px', display: 'flex', gap: '8px' }}>
+            {/* Add tool row */}
+            {/* ✅ BACKEND: toolCode maps to Tool.toolCode, tagUid maps to Tag.uid */}
+            <div style={{
+              padding: '12px 16px', display: 'flex', gap: 8,
+              borderBottom: `1px solid ${T.border}`, background: T.surface2,
+            }}>
+              <input
+                placeholder="Code (e.g. TW-001)"
+                value={newTool.toolCode}
+                onChange={e => setNewTool(p => ({ ...p, toolCode: e.target.value }))}
+                style={{ width: 120, padding: '7px 10px', border: `1px solid ${T.border2}`, borderRadius: 6, fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
+              />
               <input
                 placeholder="Tool name"
                 value={newTool.name}
                 onChange={e => setNewTool(p => ({ ...p, name: e.target.value }))}
-                style={{ flex: 1, padding: '9px 12px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(190,183,0,0.15)', borderRadius: '6px', color: 'var(--text-bright)', fontSize: '12px', outline: 'none' }}
+                style={{ flex: 1, padding: '7px 10px', border: `1px solid ${T.border2}`, borderRadius: 6, fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
               />
               <input
-                placeholder="NFC Tag ID"
-                value={newTool.tag}
-                onChange={e => setNewTool(p => ({ ...p, tag: e.target.value }))}
-                style={{ width: '120px', padding: '9px 12px', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(190,183,0,0.15)', borderRadius: '6px', color: 'var(--text-bright)', fontSize: '12px', outline: 'none' }}
+                placeholder="NFC Tag UID"
+                value={newTool.tagUid}
+                onChange={e => setNewTool(p => ({ ...p, tagUid: e.target.value }))}
+                style={{ width: 110, padding: '7px 10px', border: `1px solid ${T.border2}`, borderRadius: 6, fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
               />
-              <button onClick={addTool} style={{ padding: '9px 18px', background: 'var(--old-gold)', border: 'none', borderRadius: '6px', color: 'var(--black)', fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: '12px', letterSpacing: '1px', cursor: 'pointer' }}>
+              <button
+                onClick={addTool}
+                style={{
+                  padding: '7px 14px', background: T.teal, border: 'none',
+                  borderRadius: 6, color: '#fff', fontWeight: 700, fontSize: 12,
+                  cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
+                }}
+              >
                 + Add
               </button>
             </div>
@@ -271,20 +317,29 @@ export default function AdminScreen() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={thStyle}>Tool</th>
-                  <th style={thStyle}>NFC Tag</th>
-                  <th style={thStyle}>Status</th>
-                  <th style={thStyle}></th>
+                  <th style={th}>Code</th>
+                  <th style={th}>Tool</th>
+                  <th style={th}>NFC Tag</th>
+                  <th style={th}>Status</th>
+                  <th style={th}></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTools.map(tool => (
-                  <tr key={tool.id}>
-                    <td style={tdStyle}>{tool.name}</td>
-                    <td style={tdStyle}><TagChip id={tool.tag} /></td>
-                    <td style={tdStyle}><StatusBadge status={tool.status} /></td>
-                    <td style={tdStyle}>
-                      <button onClick={() => removeTool(tool.id)} style={{ padding: '4px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '1px', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', background: 'transparent' }}>
+                  <tr key={tool.id} style={{ cursor: 'default' }}>
+                    <td style={{ ...td, fontFamily: 'monospace', fontSize: 11, color: T.ink2 }}>{tool.toolCode}</td>
+                    <td style={{ ...td, fontWeight: 500 }}>{tool.name}</td>
+                    <td style={td}><TagChip uid={tool.tagUid || '—'} /></td>
+                    <td style={td}><StatusBadge status={tool.status} /></td>
+                    <td style={td}>
+                      <button
+                        onClick={() => removeTool(tool.id)}
+                        style={{
+                          padding: '3px 10px', border: `1px solid rgba(192,57,43,0.2)`,
+                          borderRadius: 5, fontSize: 11, cursor: 'pointer',
+                          color: T.red, background: 'transparent', fontFamily: 'inherit',
+                        }}
+                      >
                         Remove
                       </button>
                     </td>
@@ -294,84 +349,147 @@ export default function AdminScreen() {
             </table>
           </Panel>
 
-          {/* User Management */}
-          <div style={{ marginTop: '20px' }}>
-            <SectionTitle>User Management</SectionTitle>
-            <Panel>
-              <PanelHeader title="Registered Users">
-                <SearchInput placeholder="Search users…" value={userSearch} onChange={e => setUserSearch(e.target.value)} />
-              </PanelHeader>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Name</th>
-                    <th style={thStyle}>ID</th>
-                    <th style={thStyle}>Role</th>
-                    <th style={thStyle}></th>
+          {/* Student / User Management */}
+          {/* ✅ BACKEND NOTE: "Users" here = Student entity, not AppUser */}
+          <SectionLabel>Student Management</SectionLabel>
+          <Panel>
+            <PanelHead title="Registered Students">
+              <SearchInput
+                placeholder="Search students…"
+                value={userSearch}
+                onChange={e => setUserSearch(e.target.value)}
+              />
+            </PanelHead>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Name</th>
+                  <th style={th}>QR / ID</th>
+                  <th style={th}>Section</th>
+                  <th style={th}>Role</th>
+                  <th style={th}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.map(s => (
+                  <tr key={s.id}>
+                    <td style={{ ...td, fontWeight: 500 }}>{s.name}</td>
+                    <td style={{ ...td, fontFamily: 'monospace', fontSize: 11 }}>{s.qrCode}</td>
+                    <td style={{ ...td, color: T.ink2 }}>{s.section}</td>
+                    <td style={td}><RoleBadge role={s.role} /></td>
+                    <td style={td}>
+                      <button
+                        onClick={() => removeStudent(s.id)}
+                        style={{
+                          padding: '3px 10px', border: `1px solid rgba(192,57,43,0.2)`,
+                          borderRadius: 5, fontSize: 11, cursor: 'pointer',
+                          color: T.red, background: 'transparent', fontFamily: 'inherit',
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map(user => (
-                    <tr key={user.id}>
-                      <td style={tdStyle}>{user.name}</td>
-                      <td style={{ ...tdStyle, fontFamily: "'Space Mono', monospace", fontSize: '11px' }}>{user.studentId}</td>
-                      <td style={tdStyle}><RoleBadge role={user.role} /></td>
-                      <td style={tdStyle}>
-                        <button onClick={() => removeUser(user.id)} style={{ padding: '4px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', fontFamily: "'Rajdhani', sans-serif", fontWeight: 600, letterSpacing: '1px', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', background: 'transparent' }}>
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Panel>
-          </div>
+                ))}
+              </tbody>
+            </table>
+          </Panel>
         </div>
 
-        {/* RIGHT COLUMN */}
+        {/* ── RIGHT COLUMN ── */}
         <div>
-          <SectionTitle>Live Activity Feed</SectionTitle>
+
+          {/* Live Activity Feed */}
+          {/* ✅ BACKEND: GET /api/transactions?size=10&sort=transactedAt,desc */}
+          <SectionLabel>Live Activity</SectionLabel>
           <Panel>
-            <PanelHeader title="Recent Transactions">
-              <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '9px', color: '#4ade80', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', display: 'inline-block', animation: 'liveDot 1.5s infinite' }} />
+            <PanelHead title="Recent Transactions">
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                fontSize: 10, fontWeight: 600, color: T.green,
+              }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: '50%', background: T.green,
+                  animation: 'kdot 1.5s ease-in-out infinite',
+                }} />
                 LIVE
               </div>
-            </PanelHeader>
-            <div style={{ padding: '0 20px 16px' }}>
-              {FEED.map((item, i) => {
-                const dotColor = { borrow: '#BEB700', return: '#4ade80', overdue: '#f87171' }[item.type];
-                return (
-                  <div key={i} style={{ padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dotColor, boxShadow: `0 0 6px ${dotColor}`, marginTop: '4px', flexShrink: 0 }} />
-                    <div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-bright)', lineHeight: 1.5 }}>
-                        {item.text}<TagChip id={item.tag} />
-                      </div>
-                      <div style={{ fontFamily: "'Space Mono', monospace", fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.time}</div>
+            </PanelHead>
+            <div>
+              {FEED.map((item, i) => (
+                <div key={i} style={{
+                  padding: '11px 16px',
+                  borderBottom: i < FEED.length - 1 ? `1px solid ${T.border}` : 'none',
+                  display: 'flex', gap: 10, alignItems: 'flex-start',
+                }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: '50%', marginTop: 3, flexShrink: 0,
+                    background: feedDotColor[item.type] || T.ink2,
+                  }} />
+                  <div>
+                    <div style={{ fontSize: 12, color: T.ink, lineHeight: 1.5 }}>
+                      {item.text} <TagChip uid={item.tagUid} />
+                    </div>
+                    <div style={{
+                      fontFamily: 'monospace', fontSize: 10, color: T.ink2, marginTop: 2,
+                    }}>
+                      {item.time}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </Panel>
 
-          {/* Quick actions */}
-          <div style={{ marginTop: '20px' }}>
-            <SectionTitle>Quick Actions</SectionTitle>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[
-                { label: '📋  Export Borrow Report', bg: 'var(--old-gold)', color: 'var(--black)' },
-                { label: '📡  Register New NFC Tag', bg: 'var(--accent-blue)', color: '#fff' },
-                { label: '🔔  Send Overdue Reminders', bg: 'rgba(239,68,68,0.2)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' },
-              ].map((btn, i) => (
-                <button key={i} style={{ width: '100%', padding: '12px', background: btn.bg, border: btn.border || 'none', borderRadius: '6px', color: btn.color, fontFamily: "'Rajdhani', sans-serif", fontWeight: 700, fontSize: '13px', letterSpacing: '1px', cursor: 'pointer' }}>
-                  {btn.label}
+          {/* Quick Actions */}
+          <SectionLabel>Quick Actions</SectionLabel>
+          {[
+            { icon: '📋', label: 'Export Borrow Report',    sub: 'Download CSV of all transactions', color: T.blueBg  },
+            { icon: '📡', label: 'Register New NFC Tag',    sub: 'Link a tag UID to a tool',          color: T.tealBg  },
+            { icon: '🔔', label: 'Send Overdue Reminders',  sub: 'Notify students with overdue tools', color: T.redBg   },
+          ].map((btn, i) => (
+            <button key={i} style={{
+              width: '100%', padding: '11px 14px', marginBottom: 8,
+              borderRadius: 8, border: `1px solid ${T.border}`,
+              background: T.surface, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 12,
+              fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.15s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = T.surface2}
+              onMouseLeave={e => e.currentTarget.style.background = T.surface}
+            >
+              <div style={{
+                width: 32, height: 32, borderRadius: 8, background: btn.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 16, flexShrink: 0,
+              }}>
+                {btn.icon}
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: T.ink }}>{btn.label}</div>
+                <div style={{ fontSize: 11, color: T.ink2, marginTop: 1 }}>{btn.sub}</div>
+              </div>
+            </button>
+          ))}
+
+          {/* Printer Mode toggle */}
+          {/* ✅ BACKEND: POST /api/admin/printer/mode?mode=USB|BLUETOOTH */}
+          <SectionLabel style={{ marginTop: 8 }}>Printer</SectionLabel>
+          <Panel>
+            <PanelHead title="Printer Mode" />
+            <div style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
+              {['USB', 'BLUETOOTH'].map(mode => (
+                <button key={mode} style={{
+                  flex: 1, padding: '8px', borderRadius: 6, border: `1px solid ${T.border}`,
+                  background: T.surface2, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 12, fontWeight: 500, color: T.ink,
+                }}>
+                  {mode === 'USB' ? '🖨 USB' : '📶 Bluetooth'}
                 </button>
               ))}
             </div>
-          </div>
+          </Panel>
+
         </div>
       </div>
     </div>
