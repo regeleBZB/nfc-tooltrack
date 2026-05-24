@@ -4,3 +4,4 @@ public enum PrinterMode {
     USB,
     BLUETOOTH
 }
+    
