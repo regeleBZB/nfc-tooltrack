@@ -4,13 +4,6 @@ import { ToolAPI } from '../api';
 const DEBOUNCE_MS    = 150;
 const MIN_UID_LENGTH = 4;
 
-/**
- * NFCScanner — USB HID reader keyboard-emulation listener.
- *
- * Props:
- *   onScan(tool)  — called with ToolResponse.data on successful scan
- *   active        — when false, stops listening (e.g. during text input steps)
- */
 export default function NFCScanner({ onScan, active = true }) {
   const [status,  setStatus]  = useState('idle');
   const [message, setMessage] = useState('');
