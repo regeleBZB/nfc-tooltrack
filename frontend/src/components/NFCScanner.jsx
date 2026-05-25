@@ -1,23 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
+import { ToolAPI } from '../api';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const DEBOUNCE_MS     = 150;   // ms to wait after last keydown before firing
-const MIN_UID_LENGTH  = 4;     // minimum UID length to be considered valid
+const DEBOUNCE_MS    = 150;
+const MIN_UID_LENGTH = 4;
 
 /**
- * NFCScanner — listens for USB HID reader input (keyboard-emulation mode).
- *
- * Backend alignment:
- *   GET /api/tools/uid/{uid}
- *   → Returns ApiResponse<ToolResponse>
- *   → { success: true, data: { id, toolCode, name, category, status, tagUid, purchasePrice } }
+ * NFCScanner — USB HID reader keyboard-emulation listener.
  *
  * Props:
- *   onScan(tool)  — called with the full ToolResponse.data object on success
- *   active        — boolean; when false, scanner stops listening (e.g. during name input step)
+ *   onScan(tool)  — called with ToolResponse.data on successful scan
+ *   active        — when false, stops listening (e.g. during text input steps)
  */
 export default function NFCScanner({ onScan, active = true }) {
-  const [status, setStatus] = useState('idle'); // idle | scanning | success | error
+  const [status,  setStatus]  = useState('idle');
+  const [message, setMessage] = useState('');
   const bufferRef = useRef('');
   const timerRef  = useRef(null);
 
@@ -25,7 +21,6 @@ export default function NFCScanner({ onScan, active = true }) {
     if (!active) return;
 
     const handleKeyDown = (e) => {
-      // USB HID readers send Enter when the full UID has been transmitted
       if (e.key === 'Enter') {
         const uid = bufferRef.current.trim().toUpperCase();
         if (uid.length >= MIN_UID_LENGTH) fireScanned(uid);
@@ -33,11 +28,8 @@ export default function NFCScanner({ onScan, active = true }) {
         clearTimeout(timerRef.current);
         return;
       }
-
-      // Accumulate printable characters
       if (e.key.length === 1) bufferRef.current += e.key;
 
-      // Debounce fallback — some readers don't send Enter
       clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const uid = bufferRef.current.trim().toUpperCase();
@@ -53,27 +45,13 @@ export default function NFCScanner({ onScan, active = true }) {
     };
   }, [active]);
 
-  /**
-   * Hit the backend, parse the ApiResponse<ToolResponse> envelope,
-   * and pass data up to KioskScreen via onScan().
-   *
-   * ✅ FIXED: now correctly unwraps data.data (ApiResponse envelope)
-   * ✅ FIXED: checks data.success before treating as valid tool
-   */
   const fireScanned = async (uid) => {
     setStatus('scanning');
+    setMessage('');
     try {
-      const res  = await fetch(`/api/tools/uid/${uid}`);
-      const body = await res.json(); // ApiResponse<ToolResponse>
+      const res  = await ToolAPI.getByUid(uid); // ApiResponse<ToolResponse>
+      const tool = res.data;
 
-      if (!res.ok || !body.success) {
-        throw new Error(body.message || 'Unknown tag');
-      }
-
-      // body.data is the ToolResponse object
-      const tool = body.data;
-
-      // Guard: don't add borrowed/maintenance tools to cart
       if (tool.status === 'BORROWED') {
         throw new Error(`${tool.name} is already borrowed`);
       }
@@ -81,17 +59,17 @@ export default function NFCScanner({ onScan, active = true }) {
         throw new Error(`${tool.name} is under maintenance`);
       }
 
-      onScan(tool);   // passes ToolResponse up to KioskScreen cart
+      onScan(tool);
       setStatus('success');
+      setMessage(tool.name);
     } catch (err) {
-      console.warn('NFC scan error:', err.message);
       setStatus('error');
+      setMessage(err.message || 'Unknown tag — not registered');
     } finally {
-      setTimeout(() => setStatus('idle'), 1500);
+      setTimeout(() => { setStatus('idle'); setMessage(''); }, 2000);
     }
   };
 
-  // ✅ FIXED: all colors now use light theme palette matching KioskScreen
   const ringColor = {
     idle:     '#E5E3DF',
     scanning: 'rgba(1,105,111,0.35)',
@@ -100,113 +78,50 @@ export default function NFCScanner({ onScan, active = true }) {
   }[status];
 
   const coreStyle = {
-    idle: {
-      background: '#FFFFFF',
-      border: '2px solid #01696f',
-      boxShadow: '0 0 0 4px rgba(1,105,111,0.08)',
-    },
-    scanning: {
-      background: 'rgba(1,105,111,0.08)',
-      border: '2px solid #01696f',
-      boxShadow: '0 0 16px rgba(1,105,111,0.20)',
-    },
-    success: {
-      background: 'rgba(67,122,34,0.10)',
-      border: '2px solid #437a22',
-      boxShadow: '0 0 16px rgba(67,122,34,0.20)',
-    },
-    error: {
-      background: 'rgba(192,57,43,0.08)',
-      border: '2px solid #C0392B',
-      boxShadow: '0 0 16px rgba(192,57,43,0.15)',
-    },
+    idle:     { background: '#FFFFFF', border: '2px solid #01696f', boxShadow: '0 0 0 4px rgba(1,105,111,0.08)' },
+    scanning: { background: 'rgba(1,105,111,0.08)', border: '2px solid #01696f', boxShadow: '0 0 16px rgba(1,105,111,0.20)' },
+    success:  { background: 'rgba(67,122,34,0.10)', border: '2px solid #437a22', boxShadow: '0 0 16px rgba(67,122,34,0.20)' },
+    error:    { background: 'rgba(192,57,43,0.08)', border: '2px solid #C0392B', boxShadow: '0 0 16px rgba(192,57,43,0.15)' },
   }[status];
 
-  const labelColor = {
-    idle:     '#7A7974',
-    scanning: '#01696f',
-    success:  '#437a22',
-    error:    '#C0392B',
-  }[status];
+  const labelColor = { idle: '#7A7974', scanning: '#01696f', success: '#437a22', error: '#C0392B' }[status];
 
   const label = {
     idle:     'TAP TOOL TAG TO SCAN',
     scanning: 'READING TAG...',
-    success:  'TAG DETECTED ✓',
-    error:    'UNKNOWN TAG — NOT REGISTERED',
+    success:  message ? `✓ ${message}` : 'TAG DETECTED ✓',
+    error:    message || 'UNKNOWN TAG — NOT REGISTERED',
   }[status];
 
-  const icon = {
-    idle:     '📡',
-    scanning: '⟳',
-    success:  '✓',
-    error:    '✗',
-  }[status];
+  const icon = { idle: '📡', scanning: '⟳', success: '✓', error: '✗' }[status];
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
-    }}>
-      {/* Animated ring zone */}
-      <div style={{
-        position: 'relative', width: '180px', height: '180px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {/* Pulsing rings */}
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div style={{ position: 'relative', width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {[180, 140, 100].map((size, i) => (
           <div key={i} style={{
-            position: 'absolute',
-            width: `${size}px`, height: `${size}px`,
-            borderRadius: '50%',
+            position: 'absolute', width: size, height: size, borderRadius: '50%',
             border: `1.5px solid ${ringColor}`,
-            // ✅ FIXED: animation name matches KioskScreen's nfcExpand keyframe
             animation: `nfcExpand 2.5s ease-out ${i * 0.5}s infinite`,
             transition: 'border-color 0.3s',
           }} />
         ))}
-
-        {/* Core button */}
         <div style={{
-          position: 'relative', zIndex: 2,
-          width: '80px', height: '80px',
-          borderRadius: '50%',
+          position: 'relative', zIndex: 2, width: 80, height: 80, borderRadius: '50%',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: status === 'scanning' ? '22px' : '28px',
-          transition: 'all 0.3s',
+          fontSize: status === 'scanning' ? 22 : 28, transition: 'all 0.3s',
           ...coreStyle,
         }}>
           {icon}
         </div>
       </div>
 
-      {/* Status label */}
-      <p style={{
-        fontFamily: "'Inter', sans-serif",
-        fontSize: '11px',
-        fontWeight: 600,
-        letterSpacing: '1.5px',
-        textTransform: 'uppercase',
-        color: labelColor,
-        transition: 'color 0.3s',
-        margin: 0,
-      }}>
+      <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: labelColor, transition: 'color 0.3s', margin: 0, textAlign: 'center', maxWidth: 220 }}>
         {label}
       </p>
 
-      {/* Reader status pill — matches KioskScreen's k-nfc-pill style */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '6px',
-        background: active ? '#D4DFCC' : '#E5E3DF',
-        color: active ? '#437a22' : '#7A7974',
-        fontSize: '11px', fontWeight: 600,
-        padding: '4px 12px', borderRadius: '999px',
-        letterSpacing: '0.03em',
-      }}>
-        <div style={{
-          width: '7px', height: '7px', borderRadius: '50%',
-          background: active ? '#437a22' : '#BAB9B4',
-          animation: active ? 'kdot 1.5s ease-in-out infinite' : 'none',
-        }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: active ? '#D4DFCC' : '#E5E3DF', color: active ? '#437a22' : '#7A7974', fontSize: 11, fontWeight: 600, padding: '4px 12px', borderRadius: 999 }}>
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? '#437a22' : '#BAB9B4', animation: active ? 'kdot 1.5s ease-in-out infinite' : 'none' }} />
         {active ? 'USB Reader Listening' : 'Scanner Inactive'}
       </div>
     </div>

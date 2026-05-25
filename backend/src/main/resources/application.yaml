@@ -1,3 +1,45 @@
 spring:
-  application:
-    name: tooltracker
+  datasource:
+    url: jdbc:mysql://localhost:3306/nfc_tooltrack?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Manila
+    username: root
+    password: acmgsmjs123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+app:
+  jwt:
+    secret: nfc-tooltrack-super-secret-key-change-in-production-2024
+    expiration-ms: 86400000
+
+printer:
+  mode: USB
+  usb:
+    name: XP-58
+  bluetooth:
+    com-port: COM3
+    baud-rate: 9600
+
+cors:
+  allowed-origins:
+    - http://localhost:5173
+    - http://localhost:3000
+
+logging:
+  level:
+    com.nfctools.tooltracker: DEBUG
