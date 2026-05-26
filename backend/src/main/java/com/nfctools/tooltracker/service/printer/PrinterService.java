@@ -1,6 +1,6 @@
 package com.nfctools.tooltracker.service.printer;
 
-import mcom.github.anastaciocintra.escpos.EscPos;
+import com.github.anastaciocintra.escpos.EscPos;
 import com.github.anastaciocintra.escpos.EscPosConst;
 import com.github.anastaciocintra.escpos.Style;
 import com.nfctools.tooltracker.config.PrinterConfig;

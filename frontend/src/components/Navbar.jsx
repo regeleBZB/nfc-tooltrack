@@ -32,14 +32,18 @@ function NavTab({ label, active, onClick }) {
     </button>
   );
 }
+export default function Navbar({ activeScreen, onNavigate, user, isAdmin, onLogout }) {
+  const initial = (user ?? 'A').charAt(0).toUpperCase();
 
-export default function Navbar({ activeScreen, onNavigate, isLoggedIn, onLogout }) {
   return (
     <nav style={styles.nav}>
+
       {/* Logo */}
       <div style={styles.logo}>
         <div style={styles.logoIcon}>🔧</div>
-        <span style={styles.logoText}>Tool<span style={styles.logoAccent}>Track</span></span>
+        <span style={styles.logoText}>
+          Tool<span style={styles.logoAccent}>Track</span>
+        </span>
       </div>
 
       {/* Tabs */}
@@ -48,24 +52,37 @@ export default function Navbar({ activeScreen, onNavigate, isLoggedIn, onLogout 
         <NavTab label="Admin" active={activeScreen === 'admin' || activeScreen === 'login'} onClick={() => onNavigate('admin')} />
       </div>
 
-      {/* Right side — show user + logout when logged in, nothing when not */}
+      {/* User info / logout */}
       <div style={styles.userInfo}>
-        {isLoggedIn ? (
+        {isAdmin ? (
           <>
             <div style={styles.onlineDot} />
-            admin@school.edu
-            <div style={styles.avatar}>A</div>
-            <button onClick={onLogout} style={{
-              marginLeft: 4, padding: '4px 12px', borderRadius: 6, border: '1px solid #E5E3DF',
-              background: 'transparent', color: '#7A7974', fontSize: 11, fontWeight: 600,
-              cursor: 'pointer', fontFamily: "'Inter', sans-serif",
-            }}>
+            {user}
+            <div style={styles.avatar}>{initial}</div>
+            {/* ✅ Logout button */}
+            <button
+              onClick={onLogout}
+              style={{
+                padding: '4px 10px', background: 'transparent',
+                border: '1px solid #E5E3DF', borderRadius: 6,
+                fontSize: 11, cursor: 'pointer', color: '#7A7974',
+                fontFamily: 'inherit',
+              }}
+            >
               Logout
             </button>
           </>
         ) : (
-          // Empty placeholder to keep layout balanced
-          <div style={{ width: 120 }} />
+          <button
+            onClick={() => onNavigate('admin')}
+            style={{
+              padding: '5px 14px', background: '#01696f', border: 'none',
+              borderRadius: 6, fontSize: 12, cursor: 'pointer',
+              color: '#fff', fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >
+            Admin Login
+          </button>
         )}
       </div>
     </nav>

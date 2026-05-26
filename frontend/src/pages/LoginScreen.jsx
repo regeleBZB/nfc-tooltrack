@@ -14,8 +14,7 @@ export default function LoginScreen({ onLogin }) {
     setError('');
     try {
       const res = await AuthAPI.login(username, password);
-      // ✅ Check your Spring response shape — adjust field name if needed
-      // Common: res.token  |  res.accessToken  |  res.data.token
+
       const tok = res.token ?? res.accessToken ?? res.data?.token;
       if (!tok) throw new Error('No token in response');
       onLogin(tok, username);

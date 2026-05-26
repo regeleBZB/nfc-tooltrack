@@ -296,7 +296,30 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
     }
   };
 
+
   const verified = name.trim().length > 2 && studentId.trim().length > 3;
+
+  const handleConfirm = async () => {
+  try {
+    const res = await fetch('/api/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: transactionType,        // "BORROW" or "PURCHASE"
+        borrowerName: studentName,    // from Step 2 name input
+        toolIds: cart.map(t => t.id), // array of tool IDs in cart
+      }),
+    });
+    const body = await res.json();
+    if (body.success) {
+      // Show receipt — body.data is TransactionResponse
+      setReceiptData(body.data);
+      setStep('receipt');
+    }
+  } catch (err) {
+    console.error('Transaction failed:', err);
+  }
+};
 
   return (
     <div className="k-body">

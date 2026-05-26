@@ -46,12 +46,21 @@ public class ToolServiceImpl implements ToolService {
         return toResponse(toolRepository.save(tool));
     }
 
+    // In ToolServiceImpl.java — getToolByUid method
     @Override
     public ToolResponse getToolByUid(String uid) {
-        // This is the hot path — called on every NFC scan
+        log.info("NFC scan received — UID: {}", uid);
+
         Tag tag = tagRepository.findByUidAndActiveTrue(uid.toUpperCase())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "No registered tool found for tag UID: " + uid));
+                .orElseThrow(() -> {
+                    log.warn("No registered tag found for UID: {}", uid);
+                    return new ResourceNotFoundException(
+                            "No registered tool found for tag UID: " + uid);
+                });
+
+        log.info("Tag resolved — UID: {} → Tool: {} ({})",
+                uid, tag.getTool().getName(), tag.getTool().getStatus());
+
         return toResponse(tag.getTool());
     }
 
@@ -92,6 +101,9 @@ public class ToolServiceImpl implements ToolService {
         if (request.getPurchasePrice() != null) tool.setPurchasePrice(request.getPurchasePrice());
         return toResponse(toolRepository.save(tool));
     }
+
+
+
 
     @Override
     @Transactional
