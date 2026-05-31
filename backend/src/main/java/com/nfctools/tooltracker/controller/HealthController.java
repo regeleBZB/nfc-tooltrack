@@ -28,7 +28,7 @@ public class HealthController {
         );
     }
 
-    // Shows DB counts — proves DB connection is working
+
     @GetMapping("/db")
     public Map<String, Object> dbStatus() {
         return Map.of(

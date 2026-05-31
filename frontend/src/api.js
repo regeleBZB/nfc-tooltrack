@@ -17,8 +17,6 @@ async function request(method, path, body) {
     headers: authHeaders(),
     body: body ? JSON.stringify(body) : undefined,
   });
-
-  // ✅ FIX: Spring returns empty body on 403 — res.json() would crash
   const text = await res.text();
   const json = text ? JSON.parse(text) : {};
 

@@ -43,7 +43,7 @@ export default function LoginScreen({ onLogin }) {
           <div style={{ fontWeight: 700, fontSize: 18, color: '#28251d' }}>Admin Login</div>
           <div style={{ fontSize: 12, color: '#7A7974', marginTop: 4 }}>ToolTrack · AMT Lab</div>
         </div>
-
+      
         {error && (
           <div style={{ background: '#FEECEB', color: '#C0392B', borderRadius: 8, padding: '9px 13px', fontSize: 13, marginBottom: 18 }}>
             {error}

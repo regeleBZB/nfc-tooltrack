@@ -240,21 +240,14 @@ function StepFormType({ formType, setFormType, onNext, onBack }) {
   );
 }
 
-/* ─── Step 2: Identity ───────────────────────────────────────────────────────── */
 function StepIdentity({ name, setName, studentId, setStudentId, section, setSection, studentDbId, setStudentDbId, onNext, onBack }) {
   const [qrBuffer,  setQrBuffer]  = useState('');
   const [qrLoading, setQrLoading] = useState(false);
   const [qrError,   setQrError]   = useState('');
   const qrTimerRef  = useRef(null);
   const nameInputRef = useRef(null);
-
-  // QR scanner — same HID keyboard-emulation logic as NFC
-  // When student taps QR wand, it types the QR code then Enter
   useEffect(() => {
-    // Focus the name input so keyboard events go there first
-    // QR scanner will fire before the user types normally (very fast burst)
     const handleKey = (e) => {
-      // Only intercept if name field is NOT focused (i.e. QR scanner fired)
       if (document.activeElement === nameInputRef.current) return;
 
       if (e.key === 'Enter') {
@@ -282,9 +275,8 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
     setQrLoading(true);
     setQrError('');
     try {
-      // ✅ WIRED: GET /api/students/qr/{qrCode}
       const res     = await StudentAPI.getByQr(code);
-      const student = res.data; // StudentResponse
+      const student = res.data; /
       setName(student.name);
       setStudentId(student.qrCode);
       setStudentDbId(student.id);
@@ -296,7 +288,7 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
     }
   };
 
-
+  
   const verified = name.trim().length > 2 && studentId.trim().length > 3;
 
   const handleConfirm = async () => {
@@ -305,14 +297,13 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        type: transactionType,        // "BORROW" or "PURCHASE"
-        borrowerName: studentName,    // from Step 2 name input
-        toolIds: cart.map(t => t.id), // array of tool IDs in cart
+        type: transactionType,      
+        borrowerName: studentName,   
+        toolIds: cart.map(t => t.id), 
       }),
     });
     const body = await res.json();
     if (body.success) {
-      // Show receipt — body.data is TransactionResponse
       setReceiptData(body.data);
       setStep('receipt');
     }
@@ -380,16 +371,14 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
   );
 }
 
-/* ─── Step 3: Tool selection with NFC ────────────────────────────────────────── */
 function StepTools({ cart, setCart, onNext, onBack }) {
   const [lastScanned, setLastScanned] = useState(null);
 
-  // ✅ WIRED: NFCScanner calls GET /api/tools/uid/{uid} → adds to cart
   const handleScan = (tool) => {
     setLastScanned(tool.id);
     setCart(prev =>
       prev.find(t => t.id === tool.id)
-        ? prev  // already in cart — don't duplicate
+        ? prev  
         : [...prev, { ...tool, icon: '🔧' }]
     );
     setTimeout(() => setLastScanned(null), 2000);
@@ -412,8 +401,6 @@ function StepTools({ cart, setCart, onNext, onBack }) {
             </div>
           )}
         </div>
-
-        {/* Recently scanned tools list */}
         <div className="k-tool-panel">
           <div className="k-tool-panel-header">
             <span className="k-tool-panel-title">🔧 Scanned Tools</span>
@@ -446,7 +433,6 @@ function StepTools({ cart, setCart, onNext, onBack }) {
           </div>
         </div>
 
-        {/* Cart summary */}
         <div className="k-cart-panel">
           <div className="k-cart-header">
             <span className="k-cart-title">Cart</span>
@@ -485,11 +471,10 @@ function StepTools({ cart, setCart, onNext, onBack }) {
   );
 }
 
-/* ─── Step 4: Confirm + submit transaction ───────────────────────────────────── */
 function StepReceipt({ formType, name, studentId, studentDbId, section, cart, onReset }) {
   const [submitting, setSubmitting]   = useState(false);
   const [submitted,  setSubmitted]    = useState(false);
-  const [txData,     setTxData]       = useState(null); // TransactionResponse
+  const [txData,     setTxData]       = useState(null);
   const [error,      setError]        = useState('');
   const [printed,    setPrinted]      = useState(false);
   const [tab,        setTab]          = useState(formType === 'purchase' ? 'purchase' : 'borrow');

@@ -14,10 +14,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminController {
-
     private final TransactionService transactionService;
     private final PrinterService printerService;
-
     @GetMapping("/dashboard")
     public ResponseEntity<ApiResponse<DashboardResponse>> getDashboard() {
         return ResponseEntity.ok(ApiResponse.ok(transactionService.getDashboardStats()));
