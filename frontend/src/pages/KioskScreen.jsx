@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import NFCScanner from '../components/NFCScanner';
-import { StudentAPI, TransactionAPI } from '../api';
+import { TransactionAPI } from '../api';
+import StepIdentity from '../components/StepIdentity';   
 
-/* ─── CSS injection ──────────────────────────────────────────────────────────── */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
@@ -42,40 +42,15 @@ const CSS = `
 .k-start-card-desc  { font-size: 12px; color: #7a7974; line-height: 1.5; text-align: center; }
 .k-start-card-tag   { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .04em; }
 
-/* Identity */
-.k-identity-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: start; max-width: 680px; }
-.k-id-card   { background: #fff; border: 1.5px solid #e5e3df; border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 14px; }
-.k-id-label  { font-size: 11px; font-weight: 700; color: #7a7974; text-transform: uppercase; letter-spacing: .06em; display: flex; align-items: center; gap: 6px; }
-.k-input     { width: 100%; padding: 12px 14px; border: 1.5px solid #e5e3df; border-radius: 8px; font-size: 15px; font-family: 'Inter', sans-serif; color: #28251d; background: #f9f8f5; outline: none; transition: border .2s; box-sizing: border-box; }
-.k-input:focus { border-color: #01696f; background: #fff; box-shadow: 0 0 0 3px rgba(1,105,111,.08); }
-.k-select  { appearance: none; cursor: pointer; }
-.k-verified { display: flex; align-items: center; gap: 6px; background: #d4dfcc; border: 1.5px solid #437a22; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; color: #437a22; }
-.k-or-divider { font-size: 12px; font-weight: 700; color: #bab9b4; letter-spacing: .08em; text-align: center; padding-top: 60px; }
-.k-qr-box { background: #f9f8f5; border: 1.5px dashed #dcd9d5; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 100px; color: #7a7974; font-size: 12px; cursor: pointer; transition: all .2s; }
-.k-qr-box:hover { border-color: #01696f; background: #f0f7f6; }
-
 /* Tool layout */
 .k-tool-layout { display: grid; grid-template-columns: 220px 1fr 280px; gap: 20px; align-items: start; }
 .k-sidebar { background: #fff; border: 1px solid #e5e3df; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px; }
 .k-sidebar-label { font-size: 10px; font-weight: 700; color: #bab9b4; text-transform: uppercase; letter-spacing: .08em; padding: 4px 8px 10px; }
-.k-cat-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #7a7974; cursor: pointer; background: none; border: 1.5px solid transparent; transition: all .18s; text-align: left; width: 100%; }
-.k-cat-btn:hover:not(.active) { background: #f7f6f2; color: #28251d; }
-.k-cat-btn.active { background: #cedcd8; color: #01696f; border-color: #01696f; }
-.k-cat-count { margin-left: auto; font-size: 10px; font-weight: 700; background: #f0ede8; color: #7a7974; padding: 1px 7px; border-radius: 999px; }
-.k-cat-btn.active .k-cat-count { background: #01696f; color: #fff; }
 
 .k-tool-panel { background: #fff; border: 1px solid #e5e3df; border-radius: 14px; overflow: hidden; }
 .k-tool-panel-header { padding: 14px 18px; border-bottom: 1px solid #e5e3df; display: flex; align-items: center; justify-content: space-between; background: #f9f8f5; }
 .k-tool-panel-title  { font-size: 12px; font-weight: 700; color: #7a7974; text-transform: uppercase; letter-spacing: .06em; }
 .k-nfc-active { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #437a22; }
-.k-tools-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; padding: 16px; }
-.k-tool-chip { background: #f9f8f5; border: 1.5px solid #e5e3df; border-radius: 10px; padding: 12px 14px; cursor: pointer; transition: all .18s; position: relative; display: flex; flex-direction: column; gap: 3px; }
-.k-tool-chip:hover:not(.detected) { border-color: #01696f; background: #f0f7f6; }
-.k-tool-chip.detected { border-color: #437a22; background: #d4dfcc; animation: kpulse .8s ease-out; }
-@keyframes kpulse { 0%{box-shadow:0 0 0 0 rgba(67,122,34,.4)} 70%{box-shadow:0 0 0 8px rgba(67,122,34,0)} 100%{box-shadow:0 0 0 0 rgba(67,122,34,0)} }
-.k-tool-check { position: absolute; top: 6px; right: 6px; width: 16px; height: 16px; background: #437a22; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff; font-weight: 900; }
-.k-tool-name { font-weight: 600; font-size: 13px; line-height: 1.3; }
-.k-tool-id   { font-size: 10px; color: #bab9b4; }
 
 .k-cart-panel  { background: #fff; border: 1px solid #e5e3df; border-radius: 14px; overflow: hidden; position: sticky; top: 120px; }
 .k-cart-header { padding: 14px 18px; background: #f9f8f5; border-bottom: 1px solid #e5e3df; display: flex; align-items: center; justify-content: space-between; }
@@ -139,14 +114,10 @@ const CSS = `
 .k-error-box { background: #FEECEB; border: 1px solid rgba(192,57,43,0.2); color: #C0392B; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px; }
 .k-loading { display: flex; align-items: center; gap: 8px; color: #7a7974; font-size: 13px; }
 
-@keyframes nfcExpand { 0%{opacity:.8;transform:scale(.95)} 100%{opacity:0;transform:scale(1.15)} }
-
 @media (max-width: 900px) {
   .k-tool-layout { grid-template-columns: 1fr; }
   .k-cart-panel  { position: static; }
   .k-receipt-layout { grid-template-columns: 1fr; }
-  .k-identity-grid  { grid-template-columns: 1fr; }
-  .k-or-divider { display: none; }
 }
 `;
 
@@ -157,14 +128,7 @@ function injectCSS(id, css) {
   document.head.appendChild(el);
 }
 
-const STEPS   = ['Form Type', 'Identity', 'Select Tools', 'Receipt'];
-const SECTIONS = [
-  { id: 'EE301-3A', label: 'EE301 — Section 3A' },
-  { id: 'EE301-3B', label: 'EE301 — Section 3B' },
-  { id: 'EE205-2B', label: 'EE205 — Section 2B' },
-  { id: 'EE402-4A', label: 'EE402 — Section 4A' },
-  { id: 'AMT-3C',   label: 'AMT   — Section 3C'  },
-];
+const STEPS = ['Form Type', 'Identity', 'Select Tools', 'Receipt'];
 
 function StepBar({ current }) {
   return (
@@ -209,7 +173,7 @@ function WelcomeScreen({ onStart }) {
   );
 }
 
-/* ─── Step 1: Form type ──────────────────────────────────────────────────────── */
+/* ─── Step 0: Form type ──────────────────────────────────────────────────────── */
 function StepFormType({ formType, setFormType, onNext, onBack }) {
   return (
     <div className="k-body">
@@ -217,14 +181,17 @@ function StepFormType({ formType, setFormType, onNext, onBack }) {
       <div className="k-section-sub">Choose what you'd like to do today.</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, maxWidth: 480 }}>
         {[
-          { id: 'borrow',   icon: '📥', title: 'Borrow',           desc: 'Take tools for your lab session'   },
-          { id: 'purchase', icon: '🛒', title: 'Purchase Request',  desc: 'Request consumables or supplies'   },
+          { id: 'borrow',   icon: '📥', title: 'Borrow',          desc: 'Take tools for your lab session'  },
+          { id: 'purchase', icon: '🛒', title: 'Purchase Request', desc: 'Request consumables or supplies'  },
         ].map(opt => (
           <div
             key={opt.id}
             className={`k-start-card ${formType === opt.id ? 'active' : ''}`}
             onClick={() => setFormType(opt.id)}
-            style={{ borderColor: formType === opt.id ? '#01696f' : undefined, background: formType === opt.id ? '#cedcd8' : undefined }}
+            style={{
+              borderColor: formType === opt.id ? '#01696f' : undefined,
+              background:  formType === opt.id ? '#cedcd8' : undefined,
+            }}
           >
             <div className="k-start-card-icon" style={{ background: '#f0ede8' }}>{opt.icon}</div>
             <div className="k-start-card-title">{opt.title}</div>
@@ -234,143 +201,13 @@ function StepFormType({ formType, setFormType, onNext, onBack }) {
       </div>
       <div className="k-btn-row">
         <button className="k-btn-secondary" onClick={onBack}>← Back</button>
-        <button className="k-btn-primary" onClick={onNext}>Continue →</button>
+        <button className="k-btn-primary"   onClick={onNext}>Continue →</button>
       </div>
     </div>
   );
 }
 
-function StepIdentity({ name, setName, studentId, setStudentId, section, setSection, studentDbId, setStudentDbId, onNext, onBack }) {
-  const [qrBuffer,  setQrBuffer]  = useState('');
-  const [qrLoading, setQrLoading] = useState(false);
-  const [qrError,   setQrError]   = useState('');
-  const qrTimerRef  = useRef(null);
-  const nameInputRef = useRef(null);
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (document.activeElement === nameInputRef.current) return;
-
-      if (e.key === 'Enter') {
-        const code = qrBuffer.trim();
-        if (code.length >= 4) lookupQr(code);
-        setQrBuffer('');
-        clearTimeout(qrTimerRef.current);
-        return;
-      }
-      if (e.key.length === 1) setQrBuffer(p => p + e.key);
-
-      clearTimeout(qrTimerRef.current);
-      qrTimerRef.current = setTimeout(() => {
-        const code = qrBuffer.trim();
-        if (code.length >= 4) lookupQr(code);
-        setQrBuffer('');
-      }, 150);
-    };
-
-    window.addEventListener('keydown', handleKey);
-    return () => { window.removeEventListener('keydown', handleKey); clearTimeout(qrTimerRef.current); };
-  }, [qrBuffer]);
-
-  const lookupQr = async (code) => {
-    setQrLoading(true);
-    setQrError('');
-    try {
-      const res     = await StudentAPI.getByQr(code);
-      const student = res.data; 
-      setName(student.name);
-      setStudentId(student.qrCode);
-      setStudentDbId(student.id);
-      if (student.section) setSection(student.section);
-    } catch {
-      setQrError('Student not found. Please type your details manually.');
-    } finally {
-      setQrLoading(false);
-    }
-  };
-
-  
-  const verified = name.trim().length > 2 && studentId.trim().length > 3;
-
-  const handleConfirm = async () => {
-  try {
-    const res = await fetch('/api/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: transactionType,      
-        borrowerName: studentName,   
-        toolIds: cart.map(t => t.id), 
-      }),
-    });
-    const body = await res.json();
-    if (body.success) {
-      setReceiptData(body.data);
-      setStep('receipt');
-    }
-  } catch (err) {
-    console.error('Transaction failed:', err);
-  }
-};
-
-  return (
-    <div className="k-body">
-      <div className="k-section-title">Verify Your Identity</div>
-      <div className="k-section-sub">Type your name manually, or scan your Student QR Code.</div>
-
-      {qrError && <div className="k-error-box">{qrError}</div>}
-
-      <div className="k-identity-grid">
-        {/* Manual entry */}
-        <div className="k-id-card">
-          <div className="k-id-label">🖥 Type Your Details</div>
-          <div>
-            <div style={{ fontSize: 12, color: '#7a7974', marginBottom: 6, fontWeight: 600 }}>Full Name</div>
-            <input ref={nameInputRef} className="k-input" placeholder="e.g. Juan Dela Cruz" value={name} onChange={e => setName(e.target.value)} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: '#7a7974', marginBottom: 6, fontWeight: 600 }}>Student ID</div>
-            <input className="k-input" placeholder="e.g. 2024-00123" value={studentId} onChange={e => setStudentId(e.target.value)} />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, color: '#7a7974', marginBottom: 6, fontWeight: 600 }}>Section</div>
-            <select className="k-input k-select" value={section} onChange={e => setSection(e.target.value)}>
-              <option value="">Select section…</option>
-              {SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
-          </div>
-          {verified && <div className="k-verified">✓ Identity confirmed</div>}
-        </div>
-
-        <div className="k-or-divider">OR</div>
-
-        {/* QR scan */}
-        <div className="k-id-card">
-          <div className="k-id-label">📷 Scan Student QR Code</div>
-          <div className="k-qr-box">
-            {qrLoading
-              ? <div className="k-loading">⟳ Looking up student...</div>
-              : <>
-                  <span style={{ fontSize: 40 }}>▣</span>
-                  <span>Aim QR scanner at Student ID card</span>
-                  <span style={{ fontSize: 11, color: '#bab9b4' }}>Name fills automatically after scan</span>
-                </>
-            }
-          </div>
-          {verified && <div className="k-verified">✓ {name} — detected</div>}
-          <div className="k-hint">ℹ USB QR wand works like NFC reader — plug and scan</div>
-        </div>
-      </div>
-
-      <div className="k-btn-row">
-        <button className="k-btn-secondary" onClick={onBack}>← Back</button>
-        <button className="k-btn-primary" onClick={onNext} disabled={!verified}>
-          Continue →
-        </button>
-      </div>
-    </div>
-  );
-}
-
+/* ─── Step 2: Tools ──────────────────────────────────────────────────────────── */
 function StepTools({ cart, setCart, onNext, onBack }) {
   const [lastScanned, setLastScanned] = useState(null);
 
@@ -378,7 +215,7 @@ function StepTools({ cart, setCart, onNext, onBack }) {
     setLastScanned(tool.id);
     setCart(prev =>
       prev.find(t => t.id === tool.id)
-        ? prev  
+        ? prev
         : [...prev, { ...tool, icon: '🔧' }]
     );
     setTimeout(() => setLastScanned(null), 2000);
@@ -390,7 +227,6 @@ function StepTools({ cart, setCart, onNext, onBack }) {
       <div className="k-section-sub">Tap each tool's NFC tag to the USB reader — it appears in your cart automatically.</div>
 
       <div className="k-tool-layout">
-
         {/* NFC Scanner zone */}
         <div style={{ background: '#fff', border: '1px solid #e5e3df', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#7a7974', textTransform: 'uppercase', letterSpacing: '.08em' }}>NFC Reader</div>
@@ -401,6 +237,7 @@ function StepTools({ cart, setCart, onNext, onBack }) {
             </div>
           )}
         </div>
+
         <div className="k-tool-panel">
           <div className="k-tool-panel-header">
             <span className="k-tool-panel-title">🔧 Scanned Tools</span>
@@ -416,7 +253,16 @@ function StepTools({ cart, setCart, onNext, onBack }) {
             : (
               <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {cart.map(tool => (
-                  <div key={tool.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: lastScanned === tool.id ? '#d4dfcc' : '#f9f8f5', border: `1px solid ${lastScanned === tool.id ? '#437a22' : '#e5e3df'}`, borderRadius: 10, transition: 'all .3s' }}>
+                  <div
+                    key={tool.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 14px',
+                      background:   lastScanned === tool.id ? '#d4dfcc' : '#f9f8f5',
+                      border:       `1px solid ${lastScanned === tool.id ? '#437a22' : '#e5e3df'}`,
+                      borderRadius: 10, transition: 'all .3s',
+                    }}
+                  >
                     <span style={{ fontSize: 22 }}>🔧</span>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 13 }}>{tool.name}</div>
@@ -471,36 +317,34 @@ function StepTools({ cart, setCart, onNext, onBack }) {
   );
 }
 
-function StepReceipt({ formType, name, studentId, studentDbId, section, cart, onReset }) {
-  const [submitting, setSubmitting]   = useState(false);
-  const [submitted,  setSubmitted]    = useState(false);
-  const [txData,     setTxData]       = useState(null);
-  const [error,      setError]        = useState('');
-  const [printed,    setPrinted]      = useState(false);
-  const [tab,        setTab]          = useState(formType === 'purchase' ? 'purchase' : 'borrow');
+/* ─── Step 3: Receipt ────────────────────────────────────────────────────────── */
+function StepReceipt({ formType, name, studentId, studentDbId, department, cart, onReset }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted,  setSubmitted]  = useState(false);
+  const [txData,     setTxData]     = useState(null);
+  const [error,      setError]      = useState('');
+  const [printed,    setPrinted]    = useState(false);
+  const [tab,        setTab]        = useState(formType === 'purchase' ? 'purchase' : 'borrow');
 
   const now     = new Date();
   const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
-  // ✅ WIRED: POST /api/transactions on mount
-  useEffect(() => {
-    submitTransaction();
-  }, []);
+  useEffect(() => { submitTransaction(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const submitTransaction = async () => {
     setSubmitting(true);
     setError('');
     try {
       const payload = {
-        type:         formType.toUpperCase(),   // "BORROW" | "PURCHASE"
+        type:         formType.toUpperCase(),          // "BORROW" | "PURCHASE"
         borrowerName: name,
-        studentId:    studentDbId || null,      // Long from Student entity
-        toolIds:      cart.map(t => t.id),      // array of tool IDs
-        notes:        section ? `Section: ${section}` : null,
+        studentId:    studentDbId || null,             // Long — DB id from Student entity
+        toolIds:      cart.map(t => t.id),             // array of tool IDs
+        notes:        department ? `Department: ${department}` : null,
       };
       const res = await TransactionAPI.create(payload);
-      setTxData(res.data);   // TransactionResponse
+      setTxData(res.data);
       setSubmitted(true);
     } catch (err) {
       setError(err.message || 'Failed to submit transaction. Please try again.');
@@ -550,7 +394,7 @@ function StepReceipt({ formType, name, studentId, studentDbId, section, cart, on
       </div>
 
       <div className="k-receipt-tabs">
-        <button className={`k-receipt-tab ${tab === 'borrow' ? 'active' : ''}`} onClick={() => setTab('borrow')}>🔧 Borrower Receipt</button>
+        <button className={`k-receipt-tab ${tab === 'borrow'   ? 'active' : ''}`} onClick={() => setTab('borrow')}>🔧 Borrower Receipt</button>
         <button className={`k-receipt-tab ${tab === 'purchase' ? 'active' : ''}`} onClick={() => setTab('purchase')}>🛒 Purchase Receipt</button>
       </div>
 
@@ -560,7 +404,7 @@ function StepReceipt({ formType, name, studentId, studentDbId, section, cart, on
             <div className="k-receipt-row"><span className="k-receipt-lbl">Receipt #</span><span className="k-receipt-val" style={{ color: '#01696f' }}>{receiptNumber}</span></div>
             <div className="k-receipt-row"><span className="k-receipt-lbl">Student</span><span className="k-receipt-val">{name}</span></div>
             <div className="k-receipt-row"><span className="k-receipt-lbl">Student ID</span><span className="k-receipt-val">{studentId}</span></div>
-            <div className="k-receipt-row"><span className="k-receipt-lbl">Section</span><span className="k-receipt-val">{section || '—'}</span></div>
+            <div className="k-receipt-row"><span className="k-receipt-lbl">Department</span><span className="k-receipt-val">{department || '—'}</span></div>
             <div className="k-receipt-row"><span className="k-receipt-lbl">Date</span><span className="k-receipt-val">{dateStr}</span></div>
             <div className="k-receipt-row"><span className="k-receipt-lbl">Time In</span><span className="k-receipt-val">{timeStr}</span></div>
             <div className="k-receipt-row" style={{ borderBottom: 'none' }}>
@@ -662,18 +506,21 @@ function StepReceipt({ formType, name, studentId, studentDbId, section, cart, on
 export default function KioskScreen() {
   useEffect(() => { injectCSS('kiosk-css-v3', CSS); }, []);
 
-  const [appStep,      setAppStep]      = useState('welcome');
-  const [formType,     setFormType]     = useState('borrow');
-  const [name,         setName]         = useState('');
-  const [studentId,    setStudentId]    = useState('');
-  const [studentDbId,  setStudentDbId]  = useState(null); // Long — DB id from Student entity
-  const [section,      setSection]      = useState('');
-  const [cart,         setCart]         = useState([]);
+  const [appStep,     setAppStep]     = useState('welcome');
+  const [formType,    setFormType]    = useState('borrow');
+  const [name,        setName]        = useState('');
+  const [studentId,   setStudentId]   = useState('');
+  const [studentDbId, setStudentDbId] = useState(null);  // Long — DB id from Student entity
+  const [department,  setDepartment]  = useState('');    // renamed from `section` to match StepIdentity props
+  const [cart,        setCart]        = useState([]);
 
   const reset = () => {
     setAppStep('welcome');
     setFormType('borrow');
-    setName(''); setStudentId(''); setStudentDbId(null); setSection('');
+    setName('');
+    setStudentId('');
+    setStudentDbId(null);
+    setDepartment('');
     setCart([]);
   };
 
@@ -698,35 +545,44 @@ export default function KioskScreen() {
       {appStep === 'welcome' && (
         <WelcomeScreen onStart={(type) => { setFormType(type); setAppStep('step0'); }} />
       )}
+
       {appStep === 'step0' && (
         <StepFormType
-          formType={formType} setFormType={setFormType}
+          formType={formType}
+          setFormType={setFormType}
           onNext={() => setAppStep('step1')}
           onBack={() => setAppStep('welcome')}
         />
       )}
+
+      {/* ↓ Uses the imported StepIdentity — props match its interface exactly */}
       {appStep === 'step1' && (
         <StepIdentity
-          name={name} setName={setName}
-          studentId={studentId} setStudentId={setStudentId}
+          name={name}               setName={setName}
+          studentId={studentId}     setStudentId={setStudentId}
           studentDbId={studentDbId} setStudentDbId={setStudentDbId}
-          section={section} setSection={setSection}
+          department={department}   setDepartment={setDepartment}
           onNext={() => setAppStep('step2')}
           onBack={() => setAppStep('step0')}
         />
       )}
+
       {appStep === 'step2' && (
         <StepTools
-          cart={cart} setCart={setCart}
+          cart={cart}
+          setCart={setCart}
           onNext={() => setAppStep('step3')}
           onBack={() => setAppStep('step1')}
         />
       )}
+
       {appStep === 'step3' && (
         <StepReceipt
           formType={formType}
-          name={name} studentId={studentId}
-          studentDbId={studentDbId} section={section}
+          name={name}
+          studentId={studentId}
+          studentDbId={studentDbId}
+          department={department}
           cart={cart}
           onReset={reset}
         />
