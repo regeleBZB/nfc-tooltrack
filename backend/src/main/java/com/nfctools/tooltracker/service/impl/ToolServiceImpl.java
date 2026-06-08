@@ -27,7 +27,7 @@ import java.util.List;
 public class ToolServiceImpl implements ToolService {
 
     private final ToolRepository toolRepository;
-    private final TagRepository tagRepository;
+    private final    TagRepository tagRepository;
 
     @Override
     @Transactional
@@ -101,8 +101,6 @@ public class ToolServiceImpl implements ToolService {
         if (request.getPurchasePrice() != null) tool.setPurchasePrice(request.getPurchasePrice());
         return toResponse(toolRepository.save(tool));
     }
-
-
 
 
     @Override

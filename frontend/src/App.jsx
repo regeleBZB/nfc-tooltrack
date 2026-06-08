@@ -7,7 +7,6 @@ import { setToken, clearToken, getToken } from './api';
 
 export default function App() {
   const [screen,   setScreen]   = useState('kiosk');
-  // Check if already logged in (token survives page refresh via sessionStorage)
   const [isAdmin,  setIsAdmin]  = useState(() => !!getToken());
   const [adminUser, setAdminUser] = useState(() => sessionStorage.getItem('admin_user') || '');
 

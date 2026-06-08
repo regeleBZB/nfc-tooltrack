@@ -276,7 +276,7 @@ function StepIdentity({ name, setName, studentId, setStudentId, section, setSect
     setQrError('');
     try {
       const res     = await StudentAPI.getByQr(code);
-      const student = res.data; /
+      const student = res.data; 
       setName(student.name);
       setStudentId(student.qrCode);
       setStudentDbId(student.id);
