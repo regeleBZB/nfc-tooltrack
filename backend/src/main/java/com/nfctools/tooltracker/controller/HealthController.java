@@ -3,6 +3,8 @@ package com.nfctools.tooltracker.controller;
 // Add to HealthController.java
 import com.nfctools.tooltracker.repository.ToolRepository;
 import com.nfctools.tooltracker.repository.TagRepository;
+import javax.print.PrintService;
+import javax.print.PrintServiceLookup;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,4 +39,8 @@ public class HealthController {
                 "dbStatus", "connected"
         );
     }
+
+
+
+
 }

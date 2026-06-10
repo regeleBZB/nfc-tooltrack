@@ -8,15 +8,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Records every borrow, purchase, or return event.
- *
- * Design decisions:
- *  - Student is nullable: walk-in purchases may not have a registered student
- *  - returnedAt is nullable: filled only when type = RETURN
- *  - TransactionItem is a separate join table so each tool in a cart
- *    gets its own row — supports per-item return in the future
- */
+
 @Entity
 @Table(name = "transactions")
 @Getter

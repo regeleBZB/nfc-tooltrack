@@ -4,13 +4,7 @@ import com.nfctools.tooltracker.enums.ToolStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
-/**
- * Represents a physical tool in the lab.
- * One Tool can have one active Tag linked to it (via Tag entity).
- * Status transitions: AVAILABLE → BORROWED → AVAILABLE
- *                     AVAILABLE → MAINTENANCE → AVAILABLE
- *                     ANY       → RETIRED
- */
+
 @Entity
 @Table(name = "tools")
 @Getter

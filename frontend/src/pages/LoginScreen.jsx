@@ -6,7 +6,6 @@ export default function LoginScreen({ onLogin }) {
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
-
   const handleSubmit = async (e) => {
     e?.preventDefault();
     if (!username || !password) { setError('Please enter username and password.'); return; }
@@ -65,7 +64,6 @@ export default function LoginScreen({ onLogin }) {
             onBlur={e   => e.target.style.borderColor = '#E5E3DF'}
           />
         </div>
-
         {/* Password */}
         <div style={{ marginBottom: 24 }}>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#7A7974', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Password</label>

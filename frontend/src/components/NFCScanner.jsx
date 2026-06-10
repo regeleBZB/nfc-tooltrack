@@ -1,34 +1,55 @@
 import { useEffect, useRef, useState } from 'react';
 import { ToolAPI } from '../api';
 
-const DEBOUNCE_MS    = 150;
+const DEBOUNCE_MS    = 120;   // finalize this long after the last char
 const MIN_UID_LENGTH = 4;
+const BURST_MS       = 80;    // reader chars arrive < 80ms apart; humans type slower
 
 export default function NFCScanner({ onScan, active = true }) {
   const [status,  setStatus]  = useState('idle');
   const [message, setMessage] = useState('');
-  const bufferRef = useRef('');
-  const timerRef  = useRef(null);
+  const bufferRef  = useRef('');
+  const timerRef   = useRef(null);
+  const lastKeyRef = useRef(0);
 
   useEffect(() => {
     if (!active) return;
 
+    // Finalize the current buffer into a single clean UID lookup.
+    const finalize = () => {
+      clearTimeout(timerRef.current);
+      const raw = bufferRef.current;
+      // Strip anything that isn't a tag character (stray spaces, control keys, etc.)
+      const uid = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      bufferRef.current = '';
+
+      // TEMPORARY DEBUG — shows exactly what the reader produced.
+      // If `raw` differs from `uid`, the reader is sending junk characters.
+      console.log('[NFCScanner] raw:', JSON.stringify(raw), '→ uid:', JSON.stringify(uid));
+
+      if (uid.length >= MIN_UID_LENGTH) fireScanned(uid);
+    };
+
     const handleKeyDown = (e) => {
+      const now     = Date.now();
+      const isBurst = (now - lastKeyRef.current) < BURST_MS;
+      lastKeyRef.current = now;
+
       if (e.key === 'Enter') {
-        const uid = bufferRef.current.trim().toUpperCase();
-        if (uid.length >= MIN_UID_LENGTH) fireScanned(uid);
-        bufferRef.current = '';
-        clearTimeout(timerRef.current);
+        finalize();
         return;
       }
-      if (e.key.length === 1) bufferRef.current += e.key;
+
+      if (e.key.length === 1) {
+        // A non-burst keystroke starts a NEW scan — drop any stale leftover
+        // so an earlier stray char can't prepend onto this UID.
+        if (!isBurst) bufferRef.current = '';
+        bufferRef.current += e.key;
+        setStatus('scanning');
+      }
 
       clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        const uid = bufferRef.current.trim().toUpperCase();
-        if (uid.length >= MIN_UID_LENGTH) fireScanned(uid);
-        bufferRef.current = '';
-      }, DEBOUNCE_MS);
+      timerRef.current = setTimeout(finalize, DEBOUNCE_MS);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -36,13 +57,14 @@ export default function NFCScanner({ onScan, active = true }) {
       window.removeEventListener('keydown', handleKeyDown);
       clearTimeout(timerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   const fireScanned = async (uid) => {
     setStatus('scanning');
     setMessage('');
     try {
-      const res  = await ToolAPI.getByUid(uid); // ApiResponse<ToolResponse>
+      const res  = await ToolAPI.getByUid(uid); // GET /api/tools/uid/{uid}
       const tool = res.data;
 
       if (tool.status === 'BORROWED') {

@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import NFCScanner from '../components/NFCScanner';
 import { TransactionAPI } from '../api';
-import StepIdentity from '../components/StepIdentity';   
+import StepIdentity from '../components/StepIdentity';
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
 .k-root { min-height: calc(100vh - 56px); background: #f7f6f2; font-family: 'Inter', sans-serif; color: #28251d; }
-
 .k-topbar { background: #fff; border-bottom: 1px solid #e5e3df; padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 56px; z-index: 50; }
 .k-topbar-left { display: flex; align-items: center; gap: 12px; }
 .k-lab-name { font-weight: 700; font-size: 15px; color: #28251d; }
@@ -101,6 +100,7 @@ const CSS = `
 .k-print-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
 .k-print-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 24px; background: #01696f; color: #fff; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; transition: all .2s; }
 .k-print-btn:hover { background: #0c4e54; }
+.k-print-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .k-new-tx-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 20px; background: #f9f8f5; color: #7a7974; font-size: 13px; font-weight: 600; border: 1.5px solid #e5e3df; border-radius: 8px; cursor: pointer; }
 
 .k-btn-primary   { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; background: #01696f; color: #fff; font-size: 15px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; transition: all .2s; font-family: 'Inter', sans-serif; }
@@ -324,13 +324,22 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
   const [txData,     setTxData]     = useState(null);
   const [error,      setError]      = useState('');
   const [printed,    setPrinted]    = useState(false);
+  const [printMsg,   setPrintMsg]   = useState('');
   const [tab,        setTab]        = useState(formType === 'purchase' ? 'purchase' : 'borrow');
+
+  // Guard: the transaction must be created exactly once. Without this, React 18
+  // StrictMode (dev) or any remount would POST twice — double-borrowing tools.
+  const submittedRef = useRef(false);
 
   const now     = new Date();
   const dateStr = now.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
   const timeStr = now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
-  useEffect(() => { submitTransaction(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    submitTransaction();
+  }, []);
 
   const submitTransaction = async () => {
     setSubmitting(true);
@@ -343,6 +352,8 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
         toolIds:      cart.map(t => t.id),             // array of tool IDs
         notes:        department ? `Department: ${department}` : null,
       };
+      // POST /api/transactions → TransactionServiceImpl.createTransaction()
+      // The backend prints the thermal receipt automatically (fire-and-forget).
       const res = await TransactionAPI.create(payload);
       setTxData(res.data);
       setSubmitted(true);
@@ -353,10 +364,20 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
     }
   };
 
-  const handlePrint = () => {
+  // Reprint goes through the SAME ESC/POS thermal path as the auto-print, via
+  // POST /api/transactions/{id}/reprint. (No more window.print() — that would
+  // rasterize the whole page onto a 58mm text-only printer.)
+  const handlePrint = async () => {
+    if (!txData?.id) return;
     setPrinted(true);
-    window.print();
-    setTimeout(() => setPrinted(false), 3000);
+    setPrintMsg('');
+    try {
+      await TransactionAPI.reprint(txData.id);
+    } catch (err) {
+      setPrintMsg(err.message || 'Reprint failed — check the printer connection.');
+    } finally {
+      setTimeout(() => setPrinted(false), 3000);
+    }
   };
 
   if (submitting) {
@@ -375,7 +396,12 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
         <div className="k-section-title">Something went wrong</div>
         <div className="k-error-box">{error}</div>
         <div className="k-btn-row">
-          <button className="k-btn-secondary" onClick={submitTransaction}>Try Again</button>
+          <button
+            className="k-btn-secondary"
+            onClick={() => { submittedRef.current = true; submitTransaction(); }}
+          >
+            Try Again
+          </button>
           <button className="k-btn-secondary" onClick={onReset}>Start Over</button>
         </div>
       </div>
@@ -424,14 +450,18 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
           </div>
 
           <div className="k-print-actions">
-            <button className="k-print-btn" onClick={handlePrint}>
-              {printed ? '✓ Receipt Printed!' : '🖨 Print Receipt'}
+            <button className="k-print-btn" onClick={handlePrint} disabled={printed}>
+              {printed ? '✓ Reprinted!' : '🖨 Reprint Receipt'}
             </button>
             <button className="k-new-tx-btn" onClick={onReset}>↺ New Transaction</button>
+            <div className="k-hint" style={{ alignSelf: 'flex-start' }}>
+              ℹ Receipt prints automatically when the transaction is saved.
+            </div>
+            {printMsg && (
+              <div className="k-error-box" style={{ marginTop: 4, marginBottom: 0 }}>{printMsg}</div>
+            )}
           </div>
         </div>
-
-        {/* Thermal receipt preview */}
         {tab === 'borrow' ? (
           <div className="k-thermal">
             <div className="k-thermal-top">
@@ -510,8 +540,8 @@ export default function KioskScreen() {
   const [formType,    setFormType]    = useState('borrow');
   const [name,        setName]        = useState('');
   const [studentId,   setStudentId]   = useState('');
-  const [studentDbId, setStudentDbId] = useState(null);  // Long — DB id from Student entity
-  const [department,  setDepartment]  = useState('');    // renamed from `section` to match StepIdentity props
+  const [studentDbId, setStudentDbId] = useState(null);
+  const [department,  setDepartment]  = useState('');
   const [cart,        setCart]        = useState([]);
 
   const reset = () => {
@@ -555,7 +585,7 @@ export default function KioskScreen() {
         />
       )}
 
-      {/* ↓ Uses the imported StepIdentity — props match its interface exactly */}
+      {/* ↓ Uses the imported StepIdentity (camera + USB-wand QR scanning lives there) */}
       {appStep === 'step1' && (
         <StepIdentity
           name={name}               setName={setName}

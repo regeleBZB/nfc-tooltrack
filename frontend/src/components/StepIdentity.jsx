@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { StudentAPI } from '../api';
+
+const QR_REGION_ID = 'qr-camera-region';
 
 const DEPARTMENTS = [
   { id: 'BSAMT', label: 'BS Aircraft Engineering' },
@@ -219,8 +222,8 @@ const QR_STATES = {
     bg: '#F9F8F5',
     color: '#7A7974',
     icon: '▣',
-    main: 'Aim QR scanner at Student ID card',
-    sub:  'Student ID auto-fills after scan',
+    main: 'Camera off — tap “Use Camera” to scan',
+    sub:  'Or use a USB QR wand / type manually',
   },
   scanning: {
     border: '#01696f',
@@ -267,12 +270,18 @@ export default function StepIdentity({
   const [qrError,    setQrError]    = useState('');
   const [qrLoading,  setQrLoading]  = useState(false);
 
+  // Camera scanning (html5-qrcode). Starts ON so it opens automatically.
+  const [cameraOn,   setCameraOn]   = useState(true);
+  const [camError,   setCamError]   = useState('');
+  const html5QrRef = useRef(null);
+
   const bufferRef   = useRef('');
   const timerRef    = useRef(null);
   const lastKeyRef  = useRef(0);
   const nameRef     = useRef(null);
 
 
+  // ── USB QR wand (keyboard-wedge) — unchanged, runs in parallel ──────────────
   useEffect(() => {
     const onKey = (e) => {
       const now  = Date.now();
@@ -315,6 +324,40 @@ export default function StepIdentity({
   }, []);
 
 
+  // ── Camera lifecycle — driven entirely by `cameraOn` ────────────────────────
+  // Requires: `npm i html5-qrcode`, and the page served over HTTPS or localhost
+  // (browsers block getUserMedia on plain http:// LAN addresses).
+  useEffect(() => {
+    if (!cameraOn) return;
+
+    const scanner = new Html5Qrcode(QR_REGION_ID, { verbose: false });
+    html5QrRef.current = scanner;
+
+    scanner.start(
+      { facingMode: 'environment' },                   // rear cam on tablets; falls back on laptops
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      (decodedText) => {
+        handleQrScanned(decodedText);                  // reuse the existing autofill logic
+        setCameraOn(false);                            // stop after the first good scan
+      },
+      () => {}                                         // per-frame "no code" — ignore
+    ).catch((err) => {
+      setCamError(
+        (err && err.message) ||
+        'Cannot access camera. Allow camera permission, and make sure the kiosk is served over HTTPS or localhost.'
+      );
+      setCameraOn(false);
+    });
+
+    return () => {                                      // stop camera when toggled off / unmounted
+      const s = html5QrRef.current;
+      html5QrRef.current = null;
+      if (s) s.stop().then(() => s.clear()).catch(() => {});
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cameraOn]);
+
+
   const handleQrScanned = async (raw) => {
 
     const scannedId = raw.toUpperCase();
@@ -349,7 +392,7 @@ export default function StepIdentity({
     <div style={S.root}>
       <div style={S.title}>Verify Your Identity</div>
       <div style={S.sub}>
-        Type your details manually, or scan your Student ID QR code — the Student ID fills automatically.
+        Scan your Student ID QR code with the camera, use a USB QR wand, or type your details manually.
       </div>
 
       <div style={S.grid}>
@@ -438,20 +481,42 @@ export default function StepIdentity({
             <span>📷</span> Scan Student QR Code
           </div>
 
-          <div style={{
-            ...S.qrZone,
-            borderColor: qr.border,
-            background:  qr.bg,
-          }}>
-            <div style={{ ...S.qrIcon, color: qr.color }}>{qr.icon}</div>
-            <div style={{ ...S.qrMain, color: qr.color }}>{qr.main}</div>
-            <div style={{ ...S.qrSub, color: qr.color }}>{qr.sub}</div>
+          {cameraOn ? (
+            <>
+              {/* html5-qrcode injects the live <video> into this div — keep it childless */}
+              <div
+                id={QR_REGION_ID}
+                style={{ width: '100%', minHeight: 220, borderRadius: 10, overflow: 'hidden', background: '#000' }}
+              />
+              <button
+                style={{ ...S.btnBack, width: '100%', textAlign: 'center' }}
+                onClick={() => setCameraOn(false)}
+              >
+                ■ Stop Camera
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ ...S.qrZone, borderColor: qr.border, background: qr.bg }}>
+                <div style={{ ...S.qrIcon, color: qr.color }}>{qr.icon}</div>
+                <div style={{ ...S.qrMain, color: qr.color }}>{qr.main}</div>
+                <div style={{ ...S.qrSub,  color: qr.color }}>{qr.sub}</div>
 
-            {/* Show scanned ID badge when found */}
-            {(qrState === 'found' || qrState === 'notfound') && studentId && (
-              <div style={S.studentIdBadge}>#{studentId}</div>
-            )}
-          </div>
+                {/* Show scanned ID badge when found */}
+                {(qrState === 'found' || qrState === 'notfound') && studentId && (
+                  <div style={S.studentIdBadge}>#{studentId}</div>
+                )}
+              </div>
+              <button
+                style={{ ...S.btnNext, width: '100%', textAlign: 'center' }}
+                onClick={() => { setCamError(''); setCameraOn(true); }}
+              >
+                📷 Use Camera to Scan
+              </button>
+            </>
+          )}
+
+          {camError && <div style={S.errorBox}>{camError}</div>}
 
           {qrState === 'notfound' && (
             <div style={S.errorBox}>
@@ -462,7 +527,7 @@ export default function StepIdentity({
 
           <div style={S.hint}>
             <span>ℹ</span>
-            <span>USB QR wand works like the NFC reader — plug in and scan</span>
+            <span>No camera? A USB QR wand still works — just plug in and scan.</span>
           </div>
           <div style={{
             background: '#CEDCD8',

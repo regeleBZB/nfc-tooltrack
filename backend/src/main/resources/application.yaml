@@ -30,7 +30,7 @@ app:
 printer:
   mode: USB
   usb:
-    name: XP-58
+    name: 58H
   bluetooth:
     com-port: COM3
     baud-rate: 9600
