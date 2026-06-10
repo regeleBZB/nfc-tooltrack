@@ -118,7 +118,7 @@ const S = {
     paddingTop: 60,
     userSelect: 'none',
   },
-  // QR scan zone
+  // QR scan zone (idle placeholder)
   qrZone: {
     border: '1.5px dashed',
     borderRadius: 10,
@@ -222,7 +222,7 @@ const QR_STATES = {
     bg: '#F9F8F5',
     color: '#7A7974',
     icon: '▣',
-    main: 'Camera off — tap “Use Camera” to scan',
+    main: 'Tap “Use Camera” to scan your ID',
     sub:  'Or use a USB QR wand / type manually',
   },
   scanning: {
@@ -270,8 +270,8 @@ export default function StepIdentity({
   const [qrError,    setQrError]    = useState('');
   const [qrLoading,  setQrLoading]  = useState(false);
 
-  // Camera scanning (html5-qrcode). Starts ON so it opens automatically.
-  const [cameraOn,   setCameraOn]   = useState(true);
+  // Camera scanning — OFF by default; opens only when the button is tapped.
+  const [cameraOn,   setCameraOn]   = useState(false);
   const [camError,   setCamError]   = useState('');
   const html5QrRef = useRef(null);
 
@@ -281,7 +281,7 @@ export default function StepIdentity({
   const nameRef     = useRef(null);
 
 
-  // ── USB QR wand (keyboard-wedge) — unchanged, runs in parallel ──────────────
+  // ── USB QR wand (keyboard-wedge) — runs in parallel, unchanged ──────────────
   useEffect(() => {
     const onKey = (e) => {
       const now  = Date.now();
@@ -324,24 +324,27 @@ export default function StepIdentity({
   }, []);
 
 
-  // ── Camera lifecycle — driven entirely by `cameraOn` ────────────────────────
-  // Requires: `npm i html5-qrcode`, and the page served over HTTPS or localhost
-  // (browsers block getUserMedia on plain http:// LAN addresses).
+  // ── Camera lifecycle — the #qr-camera-region div is ALWAYS in the DOM (just
+  //    shown/hidden), so html5-qrcode and React never fight over the same node.
+  //    Needs: `npm i html5-qrcode`, served over HTTPS or localhost.
   useEffect(() => {
     if (!cameraOn) return;
+    let cancelled = false;
 
     const scanner = new Html5Qrcode(QR_REGION_ID, { verbose: false });
     html5QrRef.current = scanner;
 
     scanner.start(
-      { facingMode: 'environment' },                   // rear cam on tablets; falls back on laptops
-      { fps: 10, qrbox: { width: 220, height: 220 } },
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 200, height: 200 }, aspectRatio: 1.0 },
       (decodedText) => {
-        handleQrScanned(decodedText);                  // reuse the existing autofill logic
-        setCameraOn(false);                            // stop after the first good scan
+        if (cancelled) return;
+        handleQrScanned(decodedText);   // reuse existing autofill logic
+        setCameraOn(false);             // stop after first good scan
       },
-      () => {}                                         // per-frame "no code" — ignore
+      () => {}                          // per-frame "no code" — ignore
     ).catch((err) => {
+      if (cancelled) return;
       setCamError(
         (err && err.message) ||
         'Cannot access camera. Allow camera permission, and make sure the kiosk is served over HTTPS or localhost.'
@@ -349,9 +352,12 @@ export default function StepIdentity({
       setCameraOn(false);
     });
 
-    return () => {                                      // stop camera when toggled off / unmounted
+    return () => {
+      cancelled = true;
       const s = html5QrRef.current;
       html5QrRef.current = null;
+      // Stop the scanner; the region div stays mounted so React won't remove
+      // nodes out from under html5-qrcode (that was the white-screen crash).
       if (s) s.stop().then(() => s.clear()).catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -481,28 +487,35 @@ export default function StepIdentity({
             <span>📷</span> Scan Student QR Code
           </div>
 
+          {/* ALWAYS mounted — only shown when the camera is on. html5-qrcode owns
+              the <video> inside here; React never adds/removes this node, which
+              is what previously crashed the page to a white screen. */}
+          <div
+            id={QR_REGION_ID}
+            style={{
+              display: cameraOn ? 'block' : 'none',
+              width: '100%',
+              maxWidth: 260,
+              margin: '0 auto',
+              borderRadius: 10,
+              overflow: 'hidden',
+              background: '#000',
+            }}
+          />
+
           {cameraOn ? (
-            <>
-              {/* html5-qrcode injects the live <video> into this div — keep it childless */}
-              <div
-                id={QR_REGION_ID}
-                style={{ width: '100%', minHeight: 220, borderRadius: 10, overflow: 'hidden', background: '#000' }}
-              />
-              <button
-                style={{ ...S.btnBack, width: '100%', textAlign: 'center' }}
-                onClick={() => setCameraOn(false)}
-              >
-                ■ Stop Camera
-              </button>
-            </>
+            <button
+              style={{ ...S.btnBack, width: '100%', textAlign: 'center' }}
+              onClick={() => setCameraOn(false)}
+            >
+              ■ Stop Camera
+            </button>
           ) : (
             <>
               <div style={{ ...S.qrZone, borderColor: qr.border, background: qr.bg }}>
                 <div style={{ ...S.qrIcon, color: qr.color }}>{qr.icon}</div>
                 <div style={{ ...S.qrMain, color: qr.color }}>{qr.main}</div>
                 <div style={{ ...S.qrSub,  color: qr.color }}>{qr.sub}</div>
-
-                {/* Show scanned ID badge when found */}
                 {(qrState === 'found' || qrState === 'notfound') && studentId && (
                   <div style={S.studentIdBadge}>#{studentId}</div>
                 )}

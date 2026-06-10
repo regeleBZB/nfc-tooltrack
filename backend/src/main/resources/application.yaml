@@ -30,7 +30,8 @@ app:
 printer:
   mode: USB
   usb:
-    name: 58H
+    name: "Officom OC 58H"
+
   bluetooth:
     com-port: COM3
     baud-rate: 9600

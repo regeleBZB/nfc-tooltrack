@@ -1,30 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import { ToolAPI } from '../api';
 
-const DEBOUNCE_MS    = 120;   // finalize this long after the last char
+const DEBOUNCE_MS    = 150;
 const MIN_UID_LENGTH = 4;
-const BURST_MS       = 80;    // reader chars arrive < 80ms apart; humans type slower
+const BURST_MS       = 80;   
 
 export default function NFCScanner({ onScan, active = true }) {
   const [status,  setStatus]  = useState('idle');
   const [message, setMessage] = useState('');
-  const bufferRef  = useRef('');
-  const timerRef   = useRef(null);
-  const lastKeyRef = useRef(0);
+  const bufferRef   = useRef('');
+  const timerRef    = useRef(null);
+  const lastKeyTime = useRef(0);
 
   useEffect(() => {
     if (!active) return;
 
-    // Finalize the current buffer into a single clean UID lookup.
     const finalize = () => {
       clearTimeout(timerRef.current);
-      const raw = bufferRef.current;
-      // Strip anything that isn't a tag character (stray spaces, control keys, etc.)
-      const uid = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const raw = bufferRef.current.trim().toUpperCase();
       bufferRef.current = '';
 
-      // TEMPORARY DEBUG — shows exactly what the reader produced.
-      // If `raw` differs from `uid`, the reader is sending junk characters.
+      // The reader emits a leading character (e.g. "3") on every scan.
+      // AddToolModal drops that first char before storing, so the DB holds the
+      // UID WITHOUT its leading digit. Reproduce that here, deterministically.
+      const uid = raw.length > 1 ? raw.slice(1) : raw;
+
+      // TEMP DEBUG — `uid` should now match the value in your tags table.
       console.log('[NFCScanner] raw:', JSON.stringify(raw), '→ uid:', JSON.stringify(uid));
 
       if (uid.length >= MIN_UID_LENGTH) fireScanned(uid);
@@ -32,8 +33,8 @@ export default function NFCScanner({ onScan, active = true }) {
 
     const handleKeyDown = (e) => {
       const now     = Date.now();
-      const isBurst = (now - lastKeyRef.current) < BURST_MS;
-      lastKeyRef.current = now;
+      const isBurst = (now - lastKeyTime.current) < BURST_MS;
+      lastKeyTime.current = now;
 
       if (e.key === 'Enter') {
         finalize();
@@ -41,10 +42,10 @@ export default function NFCScanner({ onScan, active = true }) {
       }
 
       if (e.key.length === 1) {
-        // A non-burst keystroke starts a NEW scan — drop any stale leftover
-        // so an earlier stray char can't prepend onto this UID.
+        // A non-burst keystroke begins a NEW scan — clear any stale leftover so
+        // the reader's first character is reliably the first char in the buffer.
         if (!isBurst) bufferRef.current = '';
-        bufferRef.current += e.key;
+        bufferRef.current += e.key;   // keep EVERY char incl. the first; slice it in finalize
         setStatus('scanning');
       }
 

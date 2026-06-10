@@ -398,7 +398,7 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
         <div className="k-btn-row">
           <button
             className="k-btn-secondary"
-            onClick={() => { submittedRef.current = true; submitTransaction(); }}
+           onClick={() => { submittedRef.current = false; setError(''); submitTransaction(); }}
           >
             Try Again
           </button>
