@@ -6,25 +6,24 @@ const PRODUCT_ID = 0x5011;
 const PAPER_WIDTH = 32;         
 const CHUNK_SIZE  = 64;          
 
-
 class EscPos {
   constructor() { this.bytes = []; }
 
   _push(...b) { for (const x of b) this.bytes.push(x & 0xff); return this; }
 
-  init()        { return this._push(0x1b, 0x40); }                 // ESC @
+  init()        { return this._push(0x1b, 0x40); }                 
   align(a)      { const n = a === 'center' ? 1 : a === 'right' ? 2 : 0;
-                  return this._push(0x1b, 0x61, n); }               // ESC a n
-  bold(on)      { return this._push(0x1b, 0x45, on ? 1 : 0); }      // ESC E n
-  feed(n)       { return this._push(0x1b, 0x64, n); }              // ESC d n
-  cut()         { return this._push(0x1d, 0x56, 0x00); }           // GS V 0 (full)
+                  return this._push(0x1b, 0x61, n); }               
+  bold(on)      { return this._push(0x1b, 0x45, on ? 1 : 0); }     
+  feed(n)       { return this._push(0x1b, 0x64, n); }              
+  cut()         { return this._push(0x1d, 0x56, 0x00); }        
 
   text(s) {
     const clean = toAscii(s);
     for (let i = 0; i < clean.length; i++) this.bytes.push(clean.charCodeAt(i) & 0xff);
     return this;
   }
-  line(s = '')  { return this.text(s)._push(0x0a); }                // text + LF
+  line(s = '')  { return this.text(s)._push(0x0a); }               
 
   done() { return new Uint8Array(this.bytes); }
 }
@@ -32,11 +31,11 @@ class EscPos {
 function toAscii(s) {
   if (s == null) return '';
   return String(s)
-    .replace(/[\u2014\u2013]/g, '-')   // em / en dash → hyphen
-    .replace(/\u20b1/g, 'P')           // ₱ → P
-    .replace(/[\u201c\u201d]/g, '"')   // curly double quotes
-    .replace(/[\u2018\u2019]/g, "'")   // curly single quotes
-    .replace(/[^\x20-\x7e]/g, '');     // strip anything else non-ASCII
+    .replace(/[\u2014\u2013]/g, '-')   
+    .replace(/\u20b1/g, 'P')           
+    .replace(/[\u201c\u201d]/g, '"')  
+    .replace(/[\u2018\u2019]/g, "'")   
+    .replace(/[^\x20-\x7e]/g, '');    
 }
 
 function fmtDateTime(iso) {
@@ -54,7 +53,6 @@ function resolveStudentName(tx) {
   return 'Walk-in';
 }
 
-// Mirrors PrinterService.writeReceipt(EscPos, Transaction).
 export function buildReceiptBytes(tx) {
   const p    = new EscPos();
   const EQ   = '='.repeat(PAPER_WIDTH);
@@ -115,7 +113,6 @@ function assertSupported() {
   }
 }
 
-// Returns a previously-authorized printer without prompting, or null.
 async function getAuthorizedDevice() {
   const devices = await navigator.usb.getDevices();
   return (
@@ -136,7 +133,6 @@ function findBulkOut(device) {
       }
     }
   }
-  // Fallback: POS-58 printers typically expose interface 0 / endpoint 1.
   return { interfaceNumber: 0, endpointNumber: 1 };
 }
 
@@ -180,9 +176,9 @@ export async function isPrinterConnected() {
 export async function connectPrinter() {
   assertSupported();
   const device = await navigator.usb.requestDevice({
-    filters: [{ vendorId: VENDOR_ID }],   // broad: tolerate units with a different PID
+    filters: [{ vendorId: VENDOR_ID }],   
   });
-  if (!device.opened) await device.open();   // confirm it opens
+  if (!device.opened) await device.open();   
   return {
     name: device.productName || 'USB Thermal Printer',
     vendorId: device.vendorId,

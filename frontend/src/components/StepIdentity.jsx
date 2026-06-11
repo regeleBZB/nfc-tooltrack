@@ -19,7 +19,6 @@ const DEPARTMENTS = [
   { id: 'BSBA',  label: 'BS Business Administration'         },
 ];
 
-
 const S = {
   root: {
     maxWidth: 780,
@@ -423,7 +422,6 @@ export default function StepIdentity({
             />
           </div>
 
-          {/* Student ID */}
           <div>
             <label style={S.fieldLabel}>Student ID *</label>
             <input
@@ -451,8 +449,6 @@ export default function StepIdentity({
               </div>
             )}
           </div>
-
-          {/* Department */}
           <div>
             <label style={S.fieldLabel}>Department *</label>
             <select
@@ -487,9 +483,6 @@ export default function StepIdentity({
             <span>📷</span> Scan Student QR Code
           </div>
 
-          {/* ALWAYS mounted — only shown when the camera is on. html5-qrcode owns
-              the <video> inside here; React never adds/removes this node, which
-              is what previously crashed the page to a white screen. */}
           <div
             id={QR_REGION_ID}
             style={{
