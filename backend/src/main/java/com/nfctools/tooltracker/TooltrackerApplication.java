@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 @SpringBootApplication
 @EnableConfigurationProperties
-public class TooltrackerApplication {
+public class 	TooltrackerApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TooltrackerApplication.class, args);
 	}

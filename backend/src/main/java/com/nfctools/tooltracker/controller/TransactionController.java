@@ -24,6 +24,7 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+
     @PostMapping
     public ResponseEntity<ApiResponse<TransactionResponse>> create(
             @Valid @RequestBody CreateTransactionRequest request) {
@@ -33,9 +34,16 @@ public class TransactionController {
 
     @PostMapping("/{id}/return")
     public ResponseEntity<ApiResponse<TransactionResponse>> returnItems(
-            @PathVariable Long id, @Valid @RequestBody ReturnItemsRequest request) {
+            @PathVariable Long id,
+            @Valid @RequestBody ReturnItemsRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(
                 transactionService.returnItems(id, request), "Items returned"));
+    }
+
+    @PostMapping("/{id}/reprint")
+    public ResponseEntity<ApiResponse<Void>> reprint(@PathVariable Long id) {
+        transactionService.reprintReceipt(id);
+        return ResponseEntity.ok(ApiResponse.ok(null, "Receipt sent to printer"));
     }
 
     @GetMapping("/{id}")
@@ -44,8 +52,10 @@ public class TransactionController {
     }
 
     @GetMapping("/receipt/{receiptNumber}")
-    public ResponseEntity<ApiResponse<TransactionResponse>> getByReceipt(@PathVariable String receiptNumber) {
-        return ResponseEntity.ok(ApiResponse.ok(transactionService.getTransactionByReceipt(receiptNumber)));
+    public ResponseEntity<ApiResponse<TransactionResponse>> getByReceipt(
+            @PathVariable String receiptNumber) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                transactionService.getTransactionByReceipt(receiptNumber)));
     }
 
     @GetMapping

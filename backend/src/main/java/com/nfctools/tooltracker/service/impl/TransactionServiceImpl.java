@@ -171,6 +171,13 @@ public class TransactionServiceImpl implements TransactionService {
         return d;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public void reprintReceipt(Long transactionId) {
+        Transaction tx = findTransactionOrThrow(transactionId);
+        printerService.printReceipt(tx);
+    }
+
     // ── Private ──────────────────────────────────────────────────────────────
 
     private Transaction findTransactionOrThrow(Long id) {

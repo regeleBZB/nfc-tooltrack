@@ -30,7 +30,9 @@ app:
 printer:
   mode: USB
   usb:
-    name: "Officom OC 58H"
+    name: "Generic / Text Only"
+    port: "USB002"   # ← add this
+
 
   bluetooth:
     com-port: COM3

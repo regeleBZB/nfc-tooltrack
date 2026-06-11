@@ -30,12 +30,12 @@ export const AuthAPI = {
 };
 
 export const ToolAPI = {
-  getByUid: (uid)         => request('GET',    `/tools/uid/${uid}`),
-  getAll:   (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/tools${q ? '?' + q : ''}`); },
-  getCategories: ()       => request('GET',    '/tools/categories'),
-  create:   (data)        => request('POST',   '/tools', data),
-  update:   (id, data)    => request('PATCH',  `/tools/${id}`, data),
-  delete:   (id)          => request('DELETE', `/tools/${id}`),
+  getByUid:      (uid)         => request('GET',    `/tools/uid/${uid}`),
+  getAll:        (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/tools${q ? '?' + q : ''}`); },
+  getCategories: ()            => request('GET',    '/tools/categories'),
+  create:        (data)        => request('POST',   '/tools', data),
+  update:        (id, data)    => request('PATCH',  `/tools/${id}`, data),
+  delete:        (id)          => request('DELETE', `/tools/${id}`),
 };
 
 export const TagAPI = {
@@ -45,23 +45,23 @@ export const TagAPI = {
 };
 
 export const StudentAPI = {
-  getByQr: (qrCode)      => request('GET',    `/students/qr/${encodeURIComponent(qrCode)}`),
-  getAll:  (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/students${q ? '?' + q : ''}`); },
-  create:  (data)        => request('POST',   '/students', data),
-  deactivate: (id)       => request('DELETE', `/students/${id}`),
+  getByQr:    (qrCode)      => request('GET',    `/students/qr/${encodeURIComponent(qrCode)}`),
+  getAll:     (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/students${q ? '?' + q : ''}`); },
+  create:     (data)        => request('POST',   '/students', data),
+  deactivate: (id)          => request('DELETE', `/students/${id}`),
 };
 
 export const TransactionAPI = {
-  create:      (data)                                  => request('POST', '/transactions', data),
-  returnItems: (transactionId, transactionItemIds, conditionNote = '') =>
-                                                          request('POST', `/transactions/${transactionId}/return`, { transactionItemIds, conditionNote }),
-  getAll:      (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/transactions${q ? '?' + q : ''}`); },
-  getOverdue:  (hours = 24)  => request('GET',  `/transactions/overdue?hours=${hours}`),
-  getActiveBorrows: (studentId) => request('GET', `/transactions/student/${studentId}/active`),
+  create:           (data)                                                    => request('POST', '/transactions', data),
+  reprint:          (id)                                                      => request('POST', `/transactions/${id}/reprint`),
+  returnItems:      (transactionId, transactionItemIds, conditionNote = '')   => request('POST', `/transactions/${transactionId}/return`, { transactionItemIds, conditionNote }),
+  getAll:           (params = {}) => { const q = new URLSearchParams(params).toString(); return request('GET', `/transactions${q ? '?' + q : ''}`); },
+  getOverdue:       (hours = 24)  => request('GET',  `/transactions/overdue?hours=${hours}`),
+  getActiveBorrows: (studentId)   => request('GET',  `/transactions/student/${studentId}/active`),
 };
 
 export const AdminAPI = {
-  getDashboard:     ()     => request('GET',  '/admin/dashboard'),
-  getPrinterStatus: ()     => request('GET',  '/admin/printer/status'),
-  switchPrinterMode:(mode) => request('POST', `/admin/printer/mode?mode=${mode}`),
+  getDashboard:      ()     => request('GET',  '/admin/dashboard'),
+  getPrinterStatus:  ()     => request('GET',  '/admin/printer/status'),
+  switchPrinterMode: (mode) => request('POST', `/admin/printer/mode?mode=${mode}`),
 };
