@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import NFCScanner from '../components/NFCScanner';
 import { TransactionAPI } from '../api';
 import StepIdentity from '../components/StepIdentity';
+import { printReceipt, connectPrinter, isPrinterConnected } from '../escposPrinter';
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -325,10 +326,10 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
   const [error,      setError]      = useState('');
   const [printed,    setPrinted]    = useState(false);
   const [printMsg,   setPrintMsg]   = useState('');
+  const [printerReady, setPrinterReady] = useState(false);
   const [tab,        setTab]        = useState(formType === 'purchase' ? 'purchase' : 'borrow');
 
-  // Guard: the transaction must be created exactly once. Without this, React 18
-  // StrictMode (dev) or any remount would POST twice — double-borrowing tools.
+
   const submittedRef = useRef(false);
 
   const now     = new Date();
@@ -341,6 +342,8 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
     submitTransaction();
   }, []);
 
+  useEffect(() => { isPrinterConnected().then(setPrinterReady); }, []);
+
   const submitTransaction = async () => {
     setSubmitting(true);
     setError('');
@@ -352,11 +355,12 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
         toolIds:      cart.map(t => t.id),             // array of tool IDs
         notes:        department ? `Department: ${department}` : null,
       };
-      // POST /api/transactions → TransactionServiceImpl.createTransaction()
-      // The backend prints the thermal receipt automatically (fire-and-forget).
+
       const res = await TransactionAPI.create(payload);
       setTxData(res.data);
       setSubmitted(true);
+      printReceipt(res.data).catch(err =>
+        setPrintMsg(err.message || 'Could not print. Tap "Connect Printer", then Reprint.'));
     } catch (err) {
       setError(err.message || 'Failed to submit transaction. Please try again.');
     } finally {
@@ -364,17 +368,31 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
     }
   };
 
-  // Reprint goes through the SAME ESC/POS thermal path as the auto-print, via
-  // POST /api/transactions/{id}/reprint. (No more window.print() — that would
-  // rasterize the whole page onto a 58mm text-only printer.)
+  // One-time printer authorization. MUST be a user gesture (button click) —
+  // WebUSB requires that for the device chooser. After this, Chrome remembers
+  // the printer for this site and auto-print needs no further taps.
+  const handleConnect = async () => {
+    setPrintMsg('');
+    try {
+      await connectPrinter();
+      setPrinterReady(true);
+      if (txData) await printReceipt(txData);   // print the receipt on screen now
+    } catch (err) {
+      setPrintMsg(err.message || 'Could not connect to the printer.');
+    }
+  };
+
+  // Reprint = rebuild the ESC/POS bytes and push them over WebUSB. No backend
+  // call, no window.print() (which would rasterize the page onto a 58mm
+  // text-only head).
   const handlePrint = async () => {
-    if (!txData?.id) return;
+    if (!txData) return;
     setPrinted(true);
     setPrintMsg('');
     try {
-      await TransactionAPI.reprint(txData.id);
+      await printReceipt(txData);
     } catch (err) {
-      setPrintMsg(err.message || 'Reprint failed — check the printer connection.');
+      setPrintMsg(err.message || 'Print failed — check the printer connection.');
     } finally {
       setTimeout(() => setPrinted(false), 3000);
     }
@@ -398,7 +416,7 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
         <div className="k-btn-row">
           <button
             className="k-btn-secondary"
-           onClick={() => { submittedRef.current = false; setError(''); submitTransaction(); }}
+            onClick={() => { submittedRef.current = true; submitTransaction(); }}
           >
             Try Again
           </button>
@@ -450,12 +468,19 @@ function StepReceipt({ formType, name, studentId, studentDbId, department, cart,
           </div>
 
           <div className="k-print-actions">
+            {!printerReady && (
+              <button className="k-print-btn" onClick={handleConnect}>
+                🔌 Connect Printer
+              </button>
+            )}
             <button className="k-print-btn" onClick={handlePrint} disabled={printed}>
-              {printed ? '✓ Reprinted!' : '🖨 Reprint Receipt'}
+              {printed ? '✓ Printed!' : '🖨 Reprint Receipt'}
             </button>
             <button className="k-new-tx-btn" onClick={onReset}>↺ New Transaction</button>
             <div className="k-hint" style={{ alignSelf: 'flex-start' }}>
-              ℹ Receipt prints automatically when the transaction is saved.
+              {printerReady
+                ? 'ℹ Receipt prints automatically over USB when the transaction is saved.'
+                : 'ℹ Tap “Connect Printer” once to authorize the USB printer on this tablet.'}
             </div>
             {printMsg && (
               <div className="k-error-box" style={{ marginTop: 4, marginBottom: 0 }}>{printMsg}</div>
