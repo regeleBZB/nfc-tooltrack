@@ -13,7 +13,6 @@ import java.util.List;
 public interface TransactionService {
     TransactionResponse createTransaction(CreateTransactionRequest request);
     TransactionResponse returnItems(Long transactionId, ReturnItemsRequest request);
-    void reprintReceipt(Long transactionId);
     TransactionResponse getTransactionById(Long id);
     TransactionResponse getTransactionByReceipt(String receiptNumber);
     Page<TransactionResponse> getAllTransactions(Pageable pageable);

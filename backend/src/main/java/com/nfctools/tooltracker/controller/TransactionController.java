@@ -40,11 +40,8 @@ public class TransactionController {
                 transactionService.returnItems(id, request), "Items returned"));
     }
 
-    @PostMapping("/{id}/reprint")
-    public ResponseEntity<ApiResponse<Void>> reprint(@PathVariable Long id) {
-        transactionService.reprintReceipt(id);
-        return ResponseEntity.ok(ApiResponse.ok(null, "Receipt sent to printer"));
-    }
+    // Reprint route removed — reprinting now happens in the browser over WebUSB
+    // (the receipt screen rebuilds the ESC/POS bytes and resends them).
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<TransactionResponse>> getById(@PathVariable Long id) {

@@ -13,7 +13,6 @@ import com.nfctools.tooltracker.exception.BusinessException;
 import com.nfctools.tooltracker.exception.ResourceNotFoundException;
 import com.nfctools.tooltracker.repository.*;
 import com.nfctools.tooltracker.service.TransactionService;
-import com.nfctools.tooltracker.service.printer.PrinterService;
 import com.nfctools.tooltracker.util.ReceiptNumberGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +36,9 @@ public class TransactionServiceImpl implements TransactionService {
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
     private final ReceiptNumberGenerator receiptNumberGenerator;
-    private final PrinterService printerService;
+    // NOTE: PrinterService removed. In the hosted web-app deployment the cloud
+    // server can't reach the tablet's USB printer; printing now happens in the
+    // browser over WebUSB (see escposPrinter.js on the frontend).
 
     @Override
     @Transactional
@@ -83,9 +84,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         Transaction saved = transactionRepository.save(tx);
 
-        // Fire and forget — print failure must not fail the transaction
-        printerService.printReceipt(saved);
-
+        // Printing is handled client-side over WebUSB after this response returns.
         return toResponse(saved);
     }
 
@@ -167,15 +166,9 @@ public class TransactionServiceImpl implements TransactionService {
         d.setOverdueBorrows(transactionRepository.findOverdueBorrows(
                 LocalDateTime.now().minusHours(24)).size());
         d.setTotalStudents(studentRepository.count());
-        d.setPrinterMode(printerService.getCurrentMode().name());
+        // Printing is now browser-side (WebUSB); there is no server printer mode.
+        d.setPrinterMode("USB (browser / WebUSB)");
         return d;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public void reprintReceipt(Long transactionId) {
-        Transaction tx = findTransactionOrThrow(transactionId);
-        printerService.printReceipt(tx);
     }
 
     // ── Private ──────────────────────────────────────────────────────────────
