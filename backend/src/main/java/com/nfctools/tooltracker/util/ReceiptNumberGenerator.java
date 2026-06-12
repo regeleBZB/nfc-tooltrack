@@ -16,16 +16,6 @@ public class ReceiptNumberGenerator {
 
     @PersistenceContext
     private EntityManager em;
-
-    /**
-     * Generates the next receipt number for today by querying the actual MAX
-     * sequence already in the database, so it is safe across:
-     *  - app restarts
-     *  - concurrent requests (the DB unique constraint is the final guard)
-     *  - gaps from deleted/rolled-back transactions
-     *
-     * Format: RCP-20260610-0001
-     */
     public String generate() {
         String prefix = "RCP-" + LocalDate.now().format(DATE_FMT) + "-";
 
