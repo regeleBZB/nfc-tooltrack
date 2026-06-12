@@ -18,7 +18,7 @@ spring:
       write-dates-as-timestamps: false
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
 
@@ -31,8 +31,7 @@ printer:
   mode: USB
   usb:
     name: "Generic / Text Only"
-    port: "USB002"   # ← add this
-
+    port: "USB002"
 
   bluetooth:
     com-port: COM3

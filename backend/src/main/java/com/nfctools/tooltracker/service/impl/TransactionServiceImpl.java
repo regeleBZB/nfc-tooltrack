@@ -1,5 +1,4 @@
 package com.nfctools.tooltracker.service.impl;
-
 import com.nfctools.tooltracker.dto.request.CreateTransactionRequest;
 import com.nfctools.tooltracker.dto.request.ReturnItemsRequest;
 import com.nfctools.tooltracker.dto.response.DashboardResponse;
@@ -36,9 +35,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final StudentRepository studentRepository;
     private final AppUserRepository appUserRepository;
     private final ReceiptNumberGenerator receiptNumberGenerator;
-    // NOTE: PrinterService removed. In the hosted web-app deployment the cloud
-    // server can't reach the tablet's USB printer; printing now happens in the
-    // browser over WebUSB (see escposPrinter.js on the frontend).
+
 
     @Override
     @Transactional
@@ -53,14 +50,13 @@ public class TransactionServiceImpl implements TransactionService {
                 .transactedAt(LocalDateTime.now())
                 .build();
 
-        // Resolve student if provided
         if (request.getStudentId() != null) {
             Student student = studentRepository.findById(request.getStudentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Student", request.getStudentId()));
             tx.setStudent(student);
         }
 
-        // Add tools and validate availability
+
         for (Long toolId : request.getToolIds()) {
             Tool tool = toolRepository.findById(toolId)
                     .orElseThrow(() -> new ResourceNotFoundException("Tool", toolId));
@@ -77,14 +73,10 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
             tx.addItem(item);
 
-            // Update tool status
             tool.setStatus(type == TransactionType.BORROW ? ToolStatus.BORROWED : ToolStatus.AVAILABLE);
             toolRepository.save(tool);
         }
-
         Transaction saved = transactionRepository.save(tx);
-
-        // Printing is handled client-side over WebUSB after this response returns.
         return toResponse(saved);
     }
 
@@ -108,8 +100,6 @@ public class TransactionServiceImpl implements TransactionService {
                         toolRepository.save(item.getTool());
                     });
         }
-
-        // Mark transaction returned only when ALL items are back
         boolean allReturned = tx.getItems().stream().allMatch(TransactionItem::isReturned);
         if (allReturned) {
             tx.setReturnedAt(LocalDateTime.now());
@@ -166,13 +156,9 @@ public class TransactionServiceImpl implements TransactionService {
         d.setOverdueBorrows(transactionRepository.findOverdueBorrows(
                 LocalDateTime.now().minusHours(24)).size());
         d.setTotalStudents(studentRepository.count());
-        // Printing is now browser-side (WebUSB); there is no server printer mode.
         d.setPrinterMode("USB (browser / WebUSB)");
         return d;
     }
-
-    // ── Private ──────────────────────────────────────────────────────────────
-
     private Transaction findTransactionOrThrow(Long id) {
         return transactionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction", id));

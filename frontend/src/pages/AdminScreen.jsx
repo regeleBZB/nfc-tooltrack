@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ToolAPI, TagAPI, StudentAPI, TransactionAPI, AdminAPI } from '../api';
+import BorrowedToolsPanel from '../components/BorrowedToolsPanel';
 
 const T = {
   bg:      '#F5F3EE',
@@ -510,7 +511,6 @@ export default function AdminScreen({ onNavigate }) {
   const [toolSearch,   setToolSearch]   = useState('');
   const [userSearch,   setUserSearch]   = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [printerMode,  setPrinterMode]  = useState('USB');
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState('');
 
@@ -529,7 +529,6 @@ export default function AdminScreen({ onNavigate }) {
       setStudents(studentsRes.data?.content   || []);
       setTransactions(txRes.data?.content     || []);
       setDashboard(dashRes.data);
-      if (dashRes.data?.printerMode) setPrinterMode(dashRes.data.printerMode);
     } catch (err) {
       setError('Failed to load data: ' + err.message);
     } finally {
@@ -569,16 +568,6 @@ export default function AdminScreen({ onNavigate }) {
       setStudents(p => p.filter(s => s.id !== id));
     } catch (err) {
       alert('Could not deactivate student: ' + err.message);
-    }
-  };
-
-  // ── Printer mode ──────────────────────────────────────────────────────────
-  const switchPrinterMode = async (mode) => {
-    try {
-      await AdminAPI.switchPrinterMode(mode);            // POST /api/admin/printer/mode?mode=...
-      setPrinterMode(mode);
-    } catch (err) {
-      alert('Could not switch printer mode: ' + err.message);
     }
   };
 
@@ -931,32 +920,12 @@ export default function AdminScreen({ onNavigate }) {
             </button>
           ))}
 
-          {/* Printer Mode */}
-          <SectionLabel style={{ marginTop: 4 }}>Printer</SectionLabel>
-          <Panel>
-            <PanelHead title="Printer Mode" />
-            <div style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
-              {['USB', 'BLUETOOTH'].map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => switchPrinterMode(mode)}
-                  style={{
-                    flex: 1, padding: '9px', borderRadius: 6,
-                    border: `1px solid ${printerMode === mode ? T.teal : T.border}`,
-                    background: printerMode === mode ? T.tealBg : T.surface2,
-                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12,
-                    fontWeight: printerMode === mode ? 700 : 500,
-                    color: printerMode === mode ? T.teal : T.ink,
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {mode === 'USB' ? '🖨 USB' : '📶 Bluetooth'}
-                </button>
-              ))}
-            </div>
-          </Panel>
-
         </div>
+      </div>
+
+      {/* ── Returns & Tracking (full width) ───────────────────────────────── */}
+      <div style={{ marginTop: 24 }}>
+        <BorrowedToolsPanel onReturned={loadAll} />
       </div>
 
       {/* Add Tool Modal */}
