@@ -11,7 +11,7 @@ import java.util.List;
 
 public interface ToolService {
     ToolResponse createTool(CreateToolRequest request);
-    ToolResponse getToolByUid(String uid);          // kiosk NFC scan entry point
+    ToolResponse getToolByUid(String uid);        
     ToolResponse getToolById(Long id);
     ToolResponse getToolByCode(String toolCode);
     Page<ToolResponse> getAllTools(Pageable pageable);
