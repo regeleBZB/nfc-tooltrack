@@ -27,7 +27,6 @@ export default function App() {
   };
 
   const handleNavigate = (dest) => {
-    // Trying to go to admin without being logged in → show login
     if (dest === 'admin' && !isAdmin) {
       setScreen('login');
       return;

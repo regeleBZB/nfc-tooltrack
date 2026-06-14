@@ -27,7 +27,6 @@ public class BluetoothPrinterStrategy implements PrinterStrategy {
         }
         return port.getOutputStream();
     }
-
     @Override
     public boolean isAvailable() {
         try {
