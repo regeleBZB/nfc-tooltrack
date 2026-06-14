@@ -4,14 +4,15 @@ COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
 RUN npm run build
-RUN echo "=== DIST CONTENTS ===" && ls -la /web/dist && ls -la /web/dist/assets
+RUN echo "=== DIST TREE ===" && ls -laR /web/dist && test -f /web/dist/index.html
 
 FROM maven:3.9-eclipse-temurin-17 AS api
 WORKDIR /api
 COPY backend/ ./
 COPY --from=web /web/dist/ ./src/main/resources/static/
-RUN echo "=== STATIC CONTENTS ===" && ls -la ./src/main/resources/static && ls -la ./src/main/resources/static/assets
+RUN echo "=== STATIC AFTER COPY ===" && ls -laR ./src/main/resources/static && test -f ./src/main/resources/static/index.html
 RUN mvn clean package -DskipTests
+RUN echo "=== JAR STATIC ===" && jar tf target/*.jar | grep static
 
 FROM eclipse-temurin:17-jre
 WORKDIR /app
