@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,25 +25,27 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
 
+    // Static assets bypass the security filter chain entirely — cleanest fix.
+    @Bean
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return web -> web.ignoring().requestMatchers(
+                "/", "/index.html",
+                "/assets/**",
+                "/favicon.ico", "/favicon.svg", "/vite.svg",
+                "/*.png", "/*.svg", "/*.ico", "/*.json", "/*.txt"
+        );
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // ── Static SPA files — must be public or the page won't load ──
-                        .requestMatchers("/", "/index.html", "/assets/**",
-                                "/favicon.ico", "/vite.svg", "/*.png", "/*.svg").permitAll()
-
-                        // ── Public kiosk API endpoints (no token) ──
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/tools/uid/**", "/api/students/qr/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/transactions").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/transactions/*/return").permitAll()
-
-                        // ── Admin-only ──
                         .requestMatchers("/api/admin/**").authenticated()
-
-                        // ── Everything else requires a token ──
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
