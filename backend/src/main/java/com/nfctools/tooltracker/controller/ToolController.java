@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/tools")
+@RequestMapping("/api/tools")
 @RequiredArgsConstructor
 public class ToolController {
 
