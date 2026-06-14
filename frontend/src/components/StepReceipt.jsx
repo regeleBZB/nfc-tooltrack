@@ -29,7 +29,7 @@ export default function StepReceipt({ formType, name, studentId, studentDbId, de
     setError('');
     try {
       const payload = {
-        type:         formType.toUpperCase(),         
+        type:         formType.toUpperCase(),
         borrowerName: name,
         studentId:    studentDbId || null,             // Long — DB id from Student entity
         toolIds:      cart.map(t => t.id),             // array of tool IDs
@@ -39,7 +39,7 @@ export default function StepReceipt({ formType, name, studentId, studentDbId, de
       const res = await TransactionAPI.create(payload);
       setTxData(res.data);
       setSubmitted(true);
-      printReceipt(res.data).catch(err =>
+      printReceipt(res.data, cart).catch(err =>
         setPrintMsg(err.message || 'Could not print. Tap "Connect Printer", then Reprint.'));
     } catch (err) {
       setError(err.message || 'Failed to submit transaction. Please try again.');
@@ -53,7 +53,7 @@ export default function StepReceipt({ formType, name, studentId, studentDbId, de
     try {
       await connectPrinter();
       setPrinterReady(true);
-      if (txData) await printReceipt(txData);   // print the receipt on screen now
+      if (txData) await printReceipt(txData, cart);   // print the receipt on screen now
     } catch (err) {
       setPrintMsg(err.message || 'Could not connect to the printer.');
     }
@@ -64,7 +64,7 @@ export default function StepReceipt({ formType, name, studentId, studentDbId, de
     setPrinted(true);
     setPrintMsg('');
     try {
-      await printReceipt(txData);
+      await printReceipt(txData, cart);
     } catch (err) {
       setPrintMsg(err.message || 'Print failed — check the printer connection.');
     } finally {

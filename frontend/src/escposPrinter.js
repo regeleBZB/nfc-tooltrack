@@ -1,29 +1,27 @@
-
-
 const VENDOR_ID  = 0x0416;
 const PRODUCT_ID = 0x5011;
 
-const PAPER_WIDTH = 32;         
-const CHUNK_SIZE  = 64;          
+const PAPER_WIDTH = 32;
+const CHUNK_SIZE  = 64;
 
 class EscPos {
   constructor() { this.bytes = []; }
 
   _push(...b) { for (const x of b) this.bytes.push(x & 0xff); return this; }
 
-  init()        { return this._push(0x1b, 0x40); }                 
+  init()        { return this._push(0x1b, 0x40); }
   align(a)      { const n = a === 'center' ? 1 : a === 'right' ? 2 : 0;
-                  return this._push(0x1b, 0x61, n); }               
-  bold(on)      { return this._push(0x1b, 0x45, on ? 1 : 0); }     
-  feed(n)       { return this._push(0x1b, 0x64, n); }              
-  cut()         { return this._push(0x1d, 0x56, 0x00); }        
+                  return this._push(0x1b, 0x61, n); }
+  bold(on)      { return this._push(0x1b, 0x45, on ? 1 : 0); }
+  feed(n)       { return this._push(0x1b, 0x64, n); }
+  cut()         { return this._push(0x1d, 0x56, 0x00); }
 
   text(s) {
     const clean = toAscii(s);
     for (let i = 0; i < clean.length; i++) this.bytes.push(clean.charCodeAt(i) & 0xff);
     return this;
   }
-  line(s = '')  { return this.text(s)._push(0x0a); }               
+  line(s = '')  { return this.text(s)._push(0x0a); }
 
   done() { return new Uint8Array(this.bytes); }
 }
@@ -31,11 +29,11 @@ class EscPos {
 function toAscii(s) {
   if (s == null) return '';
   return String(s)
-    .replace(/[\u2014\u2013]/g, '-')   
-    .replace(/\u20b1/g, 'P')           
-    .replace(/[\u201c\u201d]/g, '"')  
-    .replace(/[\u2018\u2019]/g, "'")   
-    .replace(/[^\x20-\x7e]/g, '');    
+    .replace(/[\u2014\u2013]/g, '-')
+    .replace(/\u20b1/g, 'P')
+    .replace(/[\u201c\u201d]/g, '"')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[^\x20-\x7e]/g, '');
 }
 
 function fmtDateTime(iso) {
@@ -53,14 +51,20 @@ function resolveStudentName(tx) {
   return 'Walk-in';
 }
 
-export function buildReceiptBytes(tx) {
+// `cartItems` (optional): the on-screen cart array, each entry shaped { name, toolCode }.
+// When provided it is the source of truth for line items, since it matches what the
+// receipt shows on screen. Falls back to tx.items (shape { tool: { name, toolCode } }).
+export function buildReceiptBytes(tx, cartItems = null) {
   const p    = new EscPos();
   const EQ   = '='.repeat(PAPER_WIDTH);
   const DASH = '-'.repeat(PAPER_WIDTH);
   const { date, time } = fmtDateTime(tx.transactedAt);
   const type    = String(tx.type || '').toUpperCase();
   const student = resolveStudentName(tx);
-  const items   = tx.items || [];
+
+  const items = (cartItems && cartItems.length)
+    ? cartItems
+    : (tx.items || []);
 
   p.init();
 
@@ -79,12 +83,14 @@ export function buildReceiptBytes(tx) {
   p.line(DASH);
 
   for (const item of items) {
-    const tool  = item.tool || {};
+    // Support both shapes: cart item ({ name, toolCode }) and tx item ({ tool: { ... } }).
+    const name  = item.name     ?? item.tool?.name     ?? 'Unknown';
+    const code  = item.toolCode ?? item.tool?.toolCode ?? '';
     const price = item.priceSnapshot != null
       ? ` (P${Number(item.priceSnapshot).toFixed(2)})`
       : '';
-    p.line('  ' + (tool.name || 'Unknown') + price);
-    p.line('  Code: ' + (tool.toolCode || ''));
+    p.line('  ' + name + price);
+    p.line('  Code: ' + code);
   }
 
   p.line(DASH);
@@ -100,12 +106,10 @@ export function buildReceiptBytes(tx) {
   p.line('');
   p.align('center').line('Thank you!').line(EQ);
 
-
   p.align('left').feed(4).cut();
 
   return p.done();
 }
-
 
 function assertSupported() {
   if (typeof navigator === 'undefined' || !('usb' in navigator)) {
@@ -166,19 +170,17 @@ async function sendBytes(bytes) {
   }
 }
 
-
 export async function isPrinterConnected() {
   if (typeof navigator === 'undefined' || !('usb' in navigator)) return false;
   return !!(await getAuthorizedDevice());
 }
 
-
 export async function connectPrinter() {
   assertSupported();
   const device = await navigator.usb.requestDevice({
-    filters: [{ vendorId: VENDOR_ID }],   
+    filters: [{ vendorId: VENDOR_ID }],
   });
-  if (!device.opened) await device.open();   
+  if (!device.opened) await device.open();
   return {
     name: device.productName || 'USB Thermal Printer',
     vendorId: device.vendorId,
@@ -186,10 +188,9 @@ export async function connectPrinter() {
   };
 }
 
-export async function printReceipt(tx) {
-  await sendBytes(buildReceiptBytes(tx));
+export async function printReceipt(tx, cartItems = null) {
+  await sendBytes(buildReceiptBytes(tx, cartItems));
 }
-
 
 export async function printTest() {
   const p = new EscPos();
