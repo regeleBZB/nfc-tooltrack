@@ -29,17 +29,8 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/index.html", "/assets/**",
-                                "/favicon.ico", "/favicon.svg", "/vite.svg",
-                                "/*.png", "/*.svg", "/*.ico", "/*.json").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-                        .requestMatchers("/api/tools/uid/**", "/api/students/qr/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/transactions").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/transactions/*/return").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                        .requestMatchers("/**").permitAll()
+                );
 
         return http.build();
     }
