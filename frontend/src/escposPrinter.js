@@ -38,11 +38,15 @@ function toAscii(s) {
 
 function fmtDateTime(iso) {
   const d = iso ? new Date(iso) : new Date();
-  const p = (n) => String(n).padStart(2, '0');
-  return {
-    date: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
-    time: `${p(d.getHours())}:${p(d.getMinutes())}`,
-  };
+  const date = d.toLocaleDateString('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }); // en-CA => YYYY-MM-DD
+  const time = d.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Manila',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  }); // => e.g. 10:53 AM
+  return { date, time };
 }
 
 function resolveStudentName(tx) {
