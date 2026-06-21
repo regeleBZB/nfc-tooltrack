@@ -551,12 +551,13 @@ export default function AdminScreen({ onNavigate }) {
   };
 
   const handleRemoveTool = async (id) => {
-    if (!window.confirm('Remove this tool? This cannot be undone.')) return;
+    if (!window.confirm('Retire this tool? It will be hidden from the inventory, but its borrow history is kept.')) return;
     try {
-      await ToolAPI.delete(id);                           // DELETE /api/tools/:id
-      setTools(p => p.filter(t => t.id !== id));
+      await ToolAPI.delete(id);                            // retires server-side (sets RETIRED)
+      setTools(p => p.filter(t => t.id !== id));            // hide immediately
+      AdminAPI.getDashboard().then(r => setDashboard(r.data)).catch(() => {});
     } catch (err) {
-      alert('Could not remove tool: ' + err.message);
+      alert('Could not retire tool: ' + err.message);
     }
   };
 
@@ -573,10 +574,11 @@ export default function AdminScreen({ onNavigate }) {
 
   // ── Filtered lists ─────────────────────────────────────────────────────────
   const filteredTools = tools.filter(t =>
-    !toolSearch ||
-    t.name?.toLowerCase().includes(toolSearch.toLowerCase()) ||
-    t.toolCode?.toLowerCase().includes(toolSearch.toLowerCase()) ||
-    (t.tagUid || '').toLowerCase().includes(toolSearch.toLowerCase())
+    t.status !== 'RETIRED' &&
+    (!toolSearch ||
+      t.name?.toLowerCase().includes(toolSearch.toLowerCase()) ||
+      t.toolCode?.toLowerCase().includes(toolSearch.toLowerCase()) ||
+      (t.tagUid || '').toLowerCase().includes(toolSearch.toLowerCase()))
   );
 
   const filteredStudents = students.filter(s =>
@@ -650,7 +652,7 @@ export default function AdminScreen({ onNavigate }) {
           {/* Tool Inventory */}
           <SectionLabel>Tool Inventory</SectionLabel>
           <Panel>
-            <PanelHead title={`All Tools (${tools.length})`}>
+            <PanelHead title={`All Tools (${filteredTools.length})`}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <SearchInput
                   placeholder="Search tools…"

@@ -37,27 +37,34 @@ function toAscii(s) {
 }
 
 function fmtDateTime(iso) {
-  const d = iso ? new Date(iso) : new Date();
-  const date = d.toLocaleDateString('en-CA', {
-    timeZone: 'Asia/Manila',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }); // en-CA => YYYY-MM-DD
-  const time = d.toLocaleTimeString('en-US', {
-    timeZone: 'Asia/Manila',
-    hour: '2-digit', minute: '2-digit', hour12: true,
-  }); // => e.g. 10:53 AM
-  return { date, time };
+  if (!iso) {
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const h24 = d.getHours();
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 || 12;
+    return {
+      date: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
+      time: `${p(h12)}:${p(d.getMinutes())} ${ampm}`,
+    };
+  }
+  const [datePart, timeRaw = ''] = String(iso).split('T');
+  const [hhStr = '00', mmStr = '00'] = timeRaw.split(':');
+  let h = parseInt(hhStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  const pad = (n) => String(n).padStart(2, '0');
+  return {
+    date: datePart,                                  // e.g. 2026-06-15
+    time: `${pad(h)}:${mmStr.slice(0, 2)} ${ampm}`,  // e.g. 10:53 AM
+  };
 }
-
 function resolveStudentName(tx) {
   if (tx.student && tx.student.name) return tx.student.name;
   if (tx.borrowerName) return tx.borrowerName;
   return 'Walk-in';
 }
 
-// `cartItems` (optional): the on-screen cart array, each entry shaped { name, toolCode }.
-// When provided it is the source of truth for line items, since it matches what the
-// receipt shows on screen. Falls back to tx.items (shape { tool: { name, toolCode } }).
 export function buildReceiptBytes(tx, cartItems = null) {
   const p    = new EscPos();
   const EQ   = '='.repeat(PAPER_WIDTH);
@@ -87,7 +94,7 @@ export function buildReceiptBytes(tx, cartItems = null) {
   p.line(DASH);
 
   for (const item of items) {
-    // Support both shapes: cart item ({ name, toolCode }) and tx item ({ tool: { ... } }).
+
     const name  = item.name     ?? item.tool?.name     ?? 'Unknown';
     const code  = item.toolCode ?? item.tool?.toolCode ?? '';
     const price = item.priceSnapshot != null

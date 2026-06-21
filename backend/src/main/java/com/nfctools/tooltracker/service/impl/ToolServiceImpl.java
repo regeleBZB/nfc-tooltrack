@@ -27,7 +27,7 @@ import java.util.List;
 public class ToolServiceImpl implements ToolService {
 
     private final ToolRepository toolRepository;
-    private final    TagRepository tagRepository;
+    private final TagRepository  tagRepository;
 
     @Override
     @Transactional
@@ -46,7 +46,6 @@ public class ToolServiceImpl implements ToolService {
         return toResponse(toolRepository.save(tool));
     }
 
-    // In ToolServiceImpl.java — getToolByUid method
     @Override
     public ToolResponse getToolByUid(String uid) {
         log.info("NFC scan received — UID: {}", uid);
@@ -102,15 +101,29 @@ public class ToolServiceImpl implements ToolService {
         return toResponse(toolRepository.save(tool));
     }
 
-
     @Override
     @Transactional
     public void deleteTool(Long id) {
         Tool tool = findToolOrThrow(id);
         if (tool.getStatus() == ToolStatus.BORROWED) {
-            throw new BusinessException("Cannot delete a tool that is currently borrowed");
+            throw new BusinessException(
+                    "Cannot retire a tool that is currently borrowed. It must be returned first.");
         }
-        toolRepository.delete(tool);
+
+        // Soft delete: retire the tool instead of removing the row, so that
+        // transaction history / receipts referencing it stay intact (avoids
+        // the foreign-key constraint error a hard delete would cause).
+        tool.setStatus(ToolStatus.RETIRED);
+
+        // Deactivate the NFC tag so its UID can be reused for another tool.
+        Tag tag = tool.getTag();
+        if (tag != null && tag.isActive()) {
+            tag.setActive(false);
+            tagRepository.save(tag);
+        }
+
+        toolRepository.save(tool);
+        log.info("Tool retired — id: {} ({})", id, tool.getName());
     }
 
     @Override
@@ -135,7 +148,6 @@ public class ToolServiceImpl implements ToolService {
         r.setStatus(tool.getStatus());
         r.setPurchasePrice(tool.getPurchasePrice());
         r.setCreatedAt(tool.getCreatedAt());
-        // Include tag UID if present — useful for admin inventory view
         if (tool.getTag() != null && tool.getTag().isActive()) {
             r.setTagUid(tool.getTag().getUid());
         }
