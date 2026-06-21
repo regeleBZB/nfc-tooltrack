@@ -55,8 +55,8 @@ function fmtDateTime(iso) {
   h = h % 12 || 12;
   const pad = (n) => String(n).padStart(2, '0');
   return {
-    date: datePart,                                  // e.g. 2026-06-15
-    time: `${pad(h)}:${mmStr.slice(0, 2)} ${ampm}`,  // e.g. 10:53 AM
+    date: datePart,                                
+    time: `${pad(h)}:${mmStr.slice(0, 2)} ${ampm}`,  
   };
 }
 function resolveStudentName(tx) {

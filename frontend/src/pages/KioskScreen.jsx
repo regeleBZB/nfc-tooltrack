@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import NFCScanner from '../components/NFCScanner';
 import StepIdentity from '../components/StepIdentity';
 import StepReceipt from '../components/StepReceipt';
+import { ToolAPI } from '../api';
 
 
 const CSS = `
@@ -210,9 +211,14 @@ function StepFormType({ formType, setFormType, onNext, onBack }) {
 
 /* ─── Step 2: Tools ──────────────────────────────────────────────────────────── */
 function StepTools({ cart, setCart, onNext, onBack }) {
-  const [lastScanned, setLastScanned] = useState(null);
+  const [lastScanned,   setLastScanned]   = useState(null);
+  const [showManual,    setShowManual]    = useState(false);
+  const [allTools,      setAllTools]      = useState([]);
+  const [manualSearch,  setManualSearch]  = useState('');
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualError,   setManualError]   = useState('');
 
-  const handleScan = (tool) => {
+  const addToCart = (tool) => {
     setLastScanned(tool.id);
     setCart(prev =>
       prev.find(t => t.id === tool.id)
@@ -221,6 +227,33 @@ function StepTools({ cart, setCart, onNext, onBack }) {
     );
     setTimeout(() => setLastScanned(null), 2000);
   };
+
+  const handleScan = (tool) => addToCart(tool);
+
+  const openManual = async () => {
+    setShowManual(true);
+    if (allTools.length === 0) {
+      setManualLoading(true);
+      setManualError('');
+      try {
+        const res = await ToolAPI.getAll({ size: 200 });   // GET /api/tools?size=200
+        setAllTools(res.data?.content || []);
+      } catch (err) {
+        setManualError('Could not load tools: ' + (err.message || 'unknown error'));
+      } finally {
+        setManualLoading(false);
+      }
+    }
+  };
+
+  // Only show tools that can actually be borrowed: AVAILABLE and not already in cart.
+  const manualList = allTools.filter(t => {
+    if (t.status !== 'AVAILABLE') return false;
+    if (cart.find(c => c.id === t.id)) return false;
+    if (!manualSearch) return true;
+    const q = manualSearch.toLowerCase();
+    return t.name?.toLowerCase().includes(q) || t.toolCode?.toLowerCase().includes(q);
+  });
 
   return (
     <div className="k-body">
@@ -237,6 +270,17 @@ function StepTools({ cart, setCart, onNext, onBack }) {
               ✓ Tool added to cart!
             </div>
           )}
+          {/* Manual fallback — for tools whose NFC tag is damaged or missing */}
+          <button
+            className="k-btn-secondary"
+            style={{ width: '100%', justifyContent: 'center', fontSize: 13, padding: '10px 16px' }}
+            onClick={openManual}
+          >
+            ⌨ Add manually
+          </button>
+          <div style={{ fontSize: 10, color: '#bab9b4', textAlign: 'center', lineHeight: 1.5 }}>
+            Use this if a tool's NFC tag is damaged or missing.
+          </div>
         </div>
 
         <div className="k-tool-panel">
@@ -314,6 +358,67 @@ function StepTools({ cart, setCart, onNext, onBack }) {
       <div className="k-btn-row">
         <button className="k-btn-secondary" onClick={onBack}>← Back</button>
       </div>
+
+      {/* ─── Manual tool picker modal ─── */}
+      {showManual && (
+        <div
+          onClick={() => setShowManual(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 16, padding: 24, width: 460, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#28251d' }}>Add Tool Manually</div>
+              <button
+                onClick={() => setShowManual(false)}
+                style={{ background: '#f0ede6', border: '1px solid #e5e3df', borderRadius: 8, width: 30, height: 30, cursor: 'pointer', fontSize: 16, color: '#7a7974' }}
+              >×</button>
+            </div>
+            <div style={{ fontSize: 11, color: '#7a7974', marginBottom: 14 }}>
+              For tools with a damaged or missing NFC tag. Only available tools are shown.
+            </div>
+
+            <input
+              autoFocus
+              placeholder="Search by name or code…"
+              value={manualSearch}
+              onChange={e => setManualSearch(e.target.value)}
+              style={{ width: '100%', padding: '9px 12px', border: '1.5px solid rgba(0,0,0,0.15)', borderRadius: 8, fontSize: 13, marginBottom: 12, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }}
+            />
+
+            {manualError && (
+              <div className="k-error-box">{manualError}</div>
+            )}
+
+            <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {manualLoading ? (
+                <div style={{ padding: 24, textAlign: 'center', color: '#7a7974', fontSize: 13 }}>Loading tools…</div>
+              ) : manualList.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: '#bab9b4', fontSize: 13 }}>
+                  {manualSearch ? 'No available tools match your search' : 'No available tools to add'}
+                </div>
+              ) : manualList.map(tool => (
+                <button
+                  key={tool.id}
+                  onClick={() => { addToCart(tool); setShowManual(false); setManualSearch(''); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#f9f8f5', border: '1px solid #e5e3df', borderRadius: 10, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'background .15s' }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#eef3ec'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#f9f8f5'}
+                >
+                  <span style={{ fontSize: 20 }}>🔧</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: '#28251d' }}>{tool.name}</div>
+                    <div style={{ fontSize: 11, color: '#7a7974' }}>{tool.toolCode} · {tool.category || 'Tool'}</div>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#01696f', fontWeight: 700 }}>+ Add</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
